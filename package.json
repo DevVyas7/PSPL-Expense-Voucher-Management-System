@@ -1,0 +1,21 @@
+{
+  "name": "pspl-expense-voucher-management-system",
+  "version": "1.0.0",
+  "description": "Expense Voucher Management System for Prachay Securities Private Limited (PSPL)",
+  "scripts": {
+    "seed": "npm --prefix backend run seed",
+    "test": "npm --prefix backend test",
+    "backend": "npm --prefix backend run dev",
+    "frontend": "npm --prefix frontend run dev"
+  },
+  "keywords": [
+    "mern",
+    "expense-voucher",
+    "mongodb",
+    "express",
+    "react",
+    "nodejs"
+  ],
+  "author": "PSPL Developer",
+  "license": "ISC"
+}

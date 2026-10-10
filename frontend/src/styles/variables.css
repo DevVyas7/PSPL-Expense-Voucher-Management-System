@@ -1,0 +1,57 @@
+:root {
+  /* Color Palette */
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-primary-light: #eff6ff;
+  
+  --color-navy-dark: #0f172a;
+  --color-navy-sidebar: #1e293b;
+  --color-navy-hover: #334155;
+  --color-navy-active: #2563eb;
+
+  --color-bg-page: #f8fafc;
+  --color-bg-card: #ffffff;
+  --color-bg-subtle: #f1f5f9;
+
+  --color-text-main: #0f172a;
+  --color-text-muted: #64748b;
+  --color-text-light: #94a3b8;
+  --color-text-white: #ffffff;
+
+  --color-border: #e2e8f0;
+  --color-border-dark: #cbd5e1;
+
+  /* Status Colors */
+  --status-draft-text: #475569;
+  --status-draft-bg: #f1f5f9;
+  --status-draft-border: #cbd5e1;
+
+  --status-pending-text: #b45309;
+  --status-pending-bg: #fef3c7;
+  --status-pending-border: #fde68a;
+
+  --status-approved-text: #15803d;
+  --status-approved-bg: #dcfce7;
+  --status-approved-border: #bbf7d0;
+
+  --status-rejected-text: #b91c1c;
+  --status-rejected-bg: #fee2e2;
+  --status-rejected-border: #fecaca;
+
+  /* UI Tokens */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.09), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  --sidebar-width: 260px;
+  --topbar-height: 68px;
+
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --transition-normal: all 0.2s ease-in-out;
+}
