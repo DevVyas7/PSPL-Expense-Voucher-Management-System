@@ -79,7 +79,10 @@ const getDirectorDashboard = async (req, res) => {
       }),
       Voucher.countDocuments({
         status: 'Rejected',
-        updatedAt: { $gte: todayStart, $lte: todayEnd }
+        $or: [
+          { rejectionDate: { $gte: todayStart, $lte: todayEnd } },
+          { rejectionDate: null, updatedAt: { $gte: todayStart, $lte: todayEnd } }
+        ]
       }),
       Voucher.aggregate([
         { $match: { status: 'Pending Approval' } },

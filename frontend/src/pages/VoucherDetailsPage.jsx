@@ -31,8 +31,16 @@ const formatDate = (dateString, includeTime = false) => {
 
 const VoucherDetailsPage = () => {
   const { id } = useParams();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const navigate = useNavigate();
+
+  const getAuthSigUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('/uploads/') && token) {
+      return `${url}?token=${encodeURIComponent(token)}`;
+    }
+    return url;
+  };
 
   const [voucher, setVoucher] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -41,7 +49,7 @@ const VoucherDetailsPage = () => {
   // Modals
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
-  const [approvalModalMode, setApprovalModalMode] = useState(null); // 'approve' | 'reject' | null
+  const [approvalModalMode, setApprovalModalMode] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
 
   const fetchVoucher = async () => {
@@ -82,7 +90,7 @@ const VoucherDetailsPage = () => {
   // Employee: Submit Draft
   const handleSubmitVoucher = async () => {
     if (!voucher?.employeeSignature) {
-      alert('An employee signature must be attached before submitting. Please click Edit to upload your signature.');
+      alert('An employee signature must be attached before submitting. Please click Edit Draft to upload or draw your signature.');
       setShowSubmitModal(false);
       return;
     }
@@ -123,11 +131,23 @@ const VoucherDetailsPage = () => {
     window.print();
   };
 
+  const handleGoBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else if (user?.role === 'Employee') {
+      navigate('/employee/my-vouchers');
+    } else if (user?.role === 'Director') {
+      navigate('/director/pending-approvals');
+    } else {
+      navigate('/accounts/dashboard');
+    }
+  };
+
   if (loading) {
     return (
       <div className="spinner-container">
         <div className="spinner" />
-        <p>Loading voucher specifications...</p>
+        <p>Loading voucher details...</p>
       </div>
     );
   }
@@ -140,31 +160,45 @@ const VoucherDetailsPage = () => {
           <button
             type="button"
             className="btn btn-secondary"
-            onClick={() => navigate(-1)}
+            onClick={handleGoBack}
           >
-            ← Go Back
+            ← Return to Previous Page
           </button>
         </div>
       </div>
     );
   }
 
-  const isOwnerEmployee = user?.role === 'Employee' && voucher.employee === user.id;
+  const voucherEmployeeId = typeof voucher.employee === 'object' && voucher.employee !== null
+    ? String(voucher.employee._id || voucher.employee.id || '')
+    : String(voucher.employee || '');
+  const currentUserId = String(user?.id || user?._id || '');
+  const isOwnerEmployee = user?.role === 'Employee' && voucherEmployeeId === currentUserId;
   const isDirector = user?.role === 'Director';
   const isPending = voucher.status === 'Pending Approval';
   const isDraft = voucher.status === 'Draft';
 
   return (
     <div>
-      {/* Page Header */}
+      {/* Top Back Navigation Bar */}
+      <div style={{ marginBottom: '14px' }}>
+        <button
+          type="button"
+          className="btn btn-secondary btn-sm"
+          onClick={handleGoBack}
+          title="Return to previous vouchers view"
+        >
+          ← Back to Vouchers
+        </button>
+      </div>
+
+      {/* Top Header Actions */}
       <div className="page-header">
         <div className="page-title-group">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <h1>Voucher: {voucher.voucherNumber}</h1>
-            <StatusBadge status={voucher.status} />
-          </div>
+          <div className="page-section-tag">Finance Record &bull; {voucher.voucherNumber}</div>
+          <h1>{voucher.voucherNumber} &bull; {voucher.expenseTitle}</h1>
           <p>
-            Voucher Date: {formatDate(voucher.voucherDate)} | Created: {formatDate(voucher.createdAt, true)}
+            Filing Date: {formatDate(voucher.voucherDate)} &bull; Created: {formatDate(voucher.createdAt, true)}
           </p>
         </div>
 
@@ -172,38 +206,48 @@ const VoucherDetailsPage = () => {
           <button
             type="button"
             className="btn btn-secondary"
+            onClick={handleGoBack}
+            title="Return to previous page"
+          >
+            ← Back
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-secondary"
             onClick={handlePrint}
+            title="Print formal voucher document"
           >
             🖨️ Print Voucher
           </button>
 
-          {/* Employee Actions */}
-          {user?.role === 'Employee' && isDraft && (
+          {/* Employee Actions: Draft Only */}
+          {isOwnerEmployee && isDraft && (
             <>
               <Link
                 to={`/employee/edit-voucher/${voucher._id}`}
-                className="btn btn-primary"
+                className="btn btn-secondary"
               >
-                ✏️ Edit Draft
+                Edit Draft
               </Link>
               <button
                 type="button"
-                className="btn btn-success"
+                className="btn btn-primary"
                 onClick={() => setShowSubmitModal(true)}
               >
-                🚀 Submit for Approval
+                Submit for Approval
               </button>
               <button
                 type="button"
                 className="btn btn-outline-danger"
                 onClick={() => setShowDeleteModal(true)}
               >
-                🗑️ Delete Draft
+                Delete Draft
               </button>
             </>
           )}
 
-          {/* Director Actions (Only when Pending Approval) */}
+          {/* Director Actions: Pending Only */}
           {isDirector && isPending && (
             <>
               <button
@@ -211,27 +255,28 @@ const VoucherDetailsPage = () => {
                 className="btn btn-success"
                 onClick={() => setApprovalModalMode('approve')}
               >
-                ✓ Approve Voucher
+                Approve Voucher
               </button>
               <button
                 type="button"
                 className="btn btn-danger"
                 onClick={() => setApprovalModalMode('reject')}
               >
-                ✕ Reject Voucher
+                Reject Voucher
               </button>
             </>
           )}
         </div>
       </div>
 
-      {/* Status Notice Banner */}
+      {/* Notice Banners */}
       {voucher.status === 'Rejected' && (
-        <div className="alert alert-error" style={{ marginBottom: '24px' }}>
+        <div className="alert alert-error">
           <div>
-            <strong>Rejection Notice:</strong> This voucher was rejected by{' '}
-            <strong>{voucher.directorName || 'the Director'}</strong>.
-            <div style={{ marginTop: '4px', fontStyle: 'italic' }}>
+            <strong>Rejection Notice:</strong> Declined by{' '}
+            <strong>{voucher.directorName || 'Director'}</strong>
+            {voucher.rejectionDate && ` on ${formatDate(voucher.rejectionDate, true)}`}.
+            <div style={{ marginTop: '2px', fontStyle: 'italic' }}>
               Reason: "{voucher.rejectionReason}"
             </div>
           </div>
@@ -239,9 +284,9 @@ const VoucherDetailsPage = () => {
       )}
 
       {voucher.status === 'Approved' && (
-        <div className="alert alert-success" style={{ marginBottom: '24px' }}>
+        <div className="alert alert-success">
           <div>
-            <strong>Approval Authorized:</strong> Approved by{' '}
+            <strong>Approved for Payment:</strong> Authorized by{' '}
             <strong>{voucher.directorName || 'Director'}</strong> on{' '}
             {formatDate(voucher.approvalDate, true)}. Ready for reimbursement disbursement.
           </div>
@@ -249,256 +294,248 @@ const VoucherDetailsPage = () => {
       )}
 
       {voucher.status === 'Pending Approval' && (
-        <div className="alert alert-warning" style={{ marginBottom: '24px' }}>
+        <div className="alert alert-warning">
           <div>
-            <strong>Pending Executive Review:</strong> This voucher is awaiting official review and signature by the Director.
+            <strong>Pending Executive Review:</strong> Submitted and awaiting Director verification and authorization signature.
           </div>
         </div>
       )}
 
-      {/* Main Details Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
-        {/* Left Column: Expense Specifics */}
-        <div className="card">
-          <div className="card-header">
-            <h2 className="card-title">Expense Particulars</h2>
+      {/* Financial Document Structure (7 Sections) */}
+      <div className="voucher-document">
+        {/* Document Masthead */}
+        <div className="voucher-doc-masthead">
+          <div className="voucher-doc-company">
+            <h2>PRACHAY SECURITIES PRIVATE LIMITED</h2>
+            <p>Expense Voucher & Reimbursement Authorization Form</p>
           </div>
-          <div className="card-body">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div className="voucher-doc-meta">
+            <span className="voucher-doc-number">{voucher.voucherNumber}</span>
+            <span className="voucher-doc-date">Filing Date: {formatDate(voucher.voucherDate)}</span>
+            <div style={{ marginTop: '4px' }}>
+              <StatusBadge status={voucher.status} />
+            </div>
+          </div>
+        </div>
+
+        {/* Section 1: Voucher Information */}
+        <div className="voucher-section">
+          <div className="voucher-section-title">
+            1. Voucher Information
+          </div>
+          <div className="voucher-data-grid">
+            <div className="voucher-data-item">
+              <span className="voucher-data-label">Voucher Number</span>
+              <span className="voucher-data-value" style={{ fontFamily: 'monospace', fontWeight: 700 }}>
+                {voucher.voucherNumber}
+              </span>
+            </div>
+            <div className="voucher-data-item">
+              <span className="voucher-data-label">Filing Date</span>
+              <span className="voucher-data-value">{formatDate(voucher.voucherDate)}</span>
+            </div>
+            <div className="voucher-data-item">
+              <span className="voucher-data-label">Submission Timestamp</span>
+              <span className="voucher-data-value">{formatDate(voucher.createdAt, true)}</span>
+            </div>
+            <div className="voucher-data-item">
+              <span className="voucher-data-label">Current Status</span>
               <div>
-                <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
-                  Expense Title
-                </div>
-                <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-navy-dark)', marginTop: '2px' }}>
-                  {voucher.expenseTitle}
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div>
-                  <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
-                    Expense Date
-                  </div>
-                  <div style={{ fontSize: '15px', fontWeight: 600, marginTop: '2px' }}>
-                    {formatDate(voucher.expenseDate)}
-                  </div>
-                </div>
-
-                <div>
-                  <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
-                    Department
-                  </div>
-                  <div style={{ fontSize: '15px', fontWeight: 600, marginTop: '2px' }}>
-                    {voucher.departmentName}
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div>
-                  <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
-                    Expense Category
-                  </div>
-                  <div style={{ marginTop: '4px' }}>
-                    <span
-                      style={{
-                        backgroundColor: '#eff6ff',
-                        color: '#2563eb',
-                        padding: '4px 10px',
-                        borderRadius: '4px',
-                        fontSize: '13px',
-                        fontWeight: 600
-                      }}
-                    >
-                      {voucher.expenseCategory}
-                    </span>
-                  </div>
-                </div>
-
-                <div>
-                  <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
-                    Total Claim Amount
-                  </div>
-                  <div style={{ fontSize: '22px', fontWeight: 800, color: 'var(--color-primary)', marginTop: '2px' }}>
-                    {formatCurrency(voucher.amount)}
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
-                  Expense Description & Justification
-                </div>
-                <div
-                  style={{
-                    marginTop: '6px',
-                    padding: '12px',
-                    backgroundColor: '#f8fafc',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    lineHeight: 1.6,
-                    color: voucher.expenseDescription ? 'var(--color-text-main)' : 'var(--color-text-muted)'
-                  }}
-                >
-                  {voucher.expenseDescription || 'No additional remarks provided.'}
-                </div>
+                <StatusBadge status={voucher.status} />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Right Column: Signatures & Audit Trail */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          {/* Employee Section */}
-          <div className="card" style={{ marginBottom: 0 }}>
-            <div className="card-header">
-              <h2 className="card-title">Employee Submission</h2>
+        {/* Section 2: Employee and Department Information */}
+        <div className="voucher-section">
+          <div className="voucher-section-title">
+            2. Employee Information
+          </div>
+          <div className="voucher-data-grid">
+            <div className="voucher-data-item">
+              <span className="voucher-data-label">Claimant Employee Name</span>
+              <span className="voucher-data-value">{voucher.employeeName}</span>
             </div>
-            <div className="card-body">
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-                <div>
-                  <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
-                    Claimant Name
-                  </div>
-                  <div style={{ fontSize: '15px', fontWeight: 600, marginTop: '2px' }}>
-                    {voucher.employeeName}
-                  </div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
-                    Employee ID
-                  </div>
-                  <div style={{ fontSize: '15px', fontWeight: 600, marginTop: '2px' }}>
-                    {voucher.employeeId || 'N/A'}
-                  </div>
-                </div>
-              </div>
+            <div className="voucher-data-item">
+              <span className="voucher-data-label">Employee ID</span>
+              <span className="voucher-data-value">{voucher.employeeId || 'N/A'}</span>
+            </div>
+            <div className="voucher-data-item">
+              <span className="voucher-data-label">Department</span>
+              <span className="voucher-data-value">{voucher.departmentName}</span>
+            </div>
+            <div className="voucher-data-item">
+              <span className="voucher-data-label">Organization Unit</span>
+              <span className="voucher-data-value">Prachay Securities Pvt Ltd</span>
+            </div>
+          </div>
+        </div>
 
-              <div>
-                <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600, marginBottom: '6px' }}>
-                  Employee Signature
-                </div>
-                {voucher.employeeSignature ? (
-                  <div className="signature-preview-box" style={{ margin: 0 }}>
-                    <img
-                      src={voucher.employeeSignature}
-                      alt="Employee Signature"
-                      className="signature-preview-img"
-                    />
-                  </div>
-                ) : (
-                  <div
-                    style={{
-                      padding: '16px',
-                      backgroundColor: '#f8fafc',
-                      borderRadius: '6px',
-                      textAlign: 'center',
-                      color: 'var(--color-text-muted)',
-                      fontSize: '13px'
-                    }}
-                  >
-                    No employee signature attached (Required before submission)
-                  </div>
-                )}
-              </div>
+        {/* Section 3: Expense Details */}
+        <div className="voucher-section">
+          <div className="voucher-section-title">
+            3. Expense Details
+          </div>
+          <div className="voucher-data-grid" style={{ marginBottom: '14px' }}>
+            <div className="voucher-data-item">
+              <span className="voucher-data-label">Expense Date</span>
+              <span className="voucher-data-value">{formatDate(voucher.expenseDate)}</span>
+            </div>
+            <div className="voucher-data-item">
+              <span className="voucher-data-label">Expense Category</span>
+              <span className="voucher-data-value">
+                <span
+                  style={{
+                    backgroundColor: 'var(--color-bg-subtle)',
+                    padding: '2px 7px',
+                    borderRadius: 'var(--radius-xs)',
+                    fontSize: '11.5px',
+                    fontWeight: 600,
+                    border: '1px solid var(--color-border)'
+                  }}
+                >
+                  {voucher.expenseCategory}
+                </span>
+              </span>
+            </div>
+            <div className="voucher-data-item" style={{ gridColumn: 'span 2' }}>
+              <span className="voucher-data-label">Total Claim Amount</span>
+              <span className="voucher-amount-highlight">{formatCurrency(voucher.amount)}</span>
             </div>
           </div>
 
-          {/* Director Approval / Rejection Section */}
-          <div className="card" style={{ marginBottom: 0 }}>
-            <div className="card-header">
-              <h2 className="card-title">Director Authorization</h2>
+          <div style={{ marginBottom: '12px' }}>
+            <span className="voucher-data-label">Expense Title</span>
+            <div style={{ fontSize: '14.5px', fontWeight: 700, color: '#202020', marginTop: '2px' }}>
+              {voucher.expenseTitle}
             </div>
-            <div className="card-body">
-              {voucher.status === 'Approved' ? (
-                <div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-                    <div>
-                      <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
-                        Approved By
-                      </div>
-                      <div style={{ fontSize: '15px', fontWeight: 600, marginTop: '2px' }}>
-                        {voucher.directorName || 'Director'}
-                      </div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
-                        Approval Date
-                      </div>
-                      <div style={{ fontSize: '15px', fontWeight: 600, marginTop: '2px' }}>
-                        {formatDate(voucher.approvalDate, true)}
-                      </div>
-                    </div>
-                  </div>
+          </div>
 
-                  <div>
-                    <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600, marginBottom: '6px' }}>
-                      Director Signature
-                    </div>
-                    {voucher.directorSignature ? (
-                      <div className="signature-preview-box" style={{ margin: 0 }}>
-                        <img
-                          src={voucher.directorSignature}
-                          alt="Director Signature"
-                          className="signature-preview-img"
-                        />
-                      </div>
-                    ) : (
-                      <div style={{ color: 'var(--color-text-muted)', fontSize: '13px' }}>
-                        Signature recorded in audit log
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : voucher.status === 'Rejected' ? (
-                <div>
-                  <div style={{ marginBottom: '12px' }}>
-                    <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
-                      Rejected By
-                    </div>
-                    <div style={{ fontSize: '15px', fontWeight: 600, marginTop: '2px' }}>
-                      {voucher.directorName || 'Director'}
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
-                      Stated Rejection Reason
-                    </div>
-                    <div
-                      style={{
-                        marginTop: '6px',
-                        padding: '12px',
-                        backgroundColor: '#fee2e2',
-                        borderRadius: '6px',
-                        color: '#991b1b',
-                        fontSize: '13px',
-                        lineHeight: 1.5
-                      }}
-                    >
-                      {voucher.rejectionReason}
-                    </div>
-                  </div>
-                </div>
+          <div>
+            <span className="voucher-data-label">Itemized Description & Justification</span>
+            <div
+              style={{
+                marginTop: '4px',
+                padding: '10px 12px',
+                backgroundColor: 'var(--color-bg-subtle)',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--color-border-subtle)',
+                fontSize: '13px',
+                lineHeight: 1.5,
+                color: voucher.expenseDescription ? '#202020' : 'var(--color-text-secondary)'
+              }}
+            >
+              {voucher.expenseDescription || 'No itemized justification provided.'}
+            </div>
+          </div>
+        </div>
+
+        {/* Sections 4 & 5 & 6 & 7: Signatures and Audit Trail */}
+        <div className="voucher-signatures-grid">
+          {/* Section 4: Employee Signature */}
+          <div className="signature-card">
+            <div className="signature-card-title">
+              4. Employee Signature
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginBottom: '8px' }}>
+              Certified business expenditure incurred on behalf of PSPL.
+            </div>
+            <div style={{ fontSize: '12px', marginBottom: '6px' }}>
+              Claimant: <strong>{voucher.employeeName}</strong>
+            </div>
+
+            <div className="signature-preview-box" style={{ margin: 0, maxWidth: '100%' }}>
+              {voucher.employeeSignature ? (
+                <img
+                  src={getAuthSigUrl(voucher.employeeSignature)}
+                  alt="Employee Signature"
+                  className="signature-preview-img"
+                />
               ) : (
-                <div
-                  style={{
-                    padding: '24px',
-                    textAlign: 'center',
-                    color: 'var(--color-text-muted)',
-                    fontSize: '13px'
-                  }}
-                >
-                  {voucher.status === 'Draft'
-                    ? 'Awaiting employee finalization and submission.'
-                    : 'Awaiting Director review and authorization signature.'}
-                </div>
+                <span style={{ color: 'var(--color-text-secondary)', fontSize: '12px' }}>
+                  No employee signature attached
+                </span>
               )}
             </div>
+          </div>
+
+          {/* Section 5 & 6: Director Approval Details & Signature */}
+          <div className="signature-card">
+            <div className="signature-card-title">
+              5 & 6. Director Approval & Signature
+            </div>
+
+            {voucher.status === 'Approved' ? (
+              <div>
+                <div style={{ fontSize: '12px', color: 'var(--status-approved-text)', fontWeight: 600, marginBottom: '6px' }}>
+                  ✓ Approved for Reimbursement
+                </div>
+                <div style={{ fontSize: '12px', marginBottom: '3px' }}>
+                  Approved By: <strong>{voucher.directorName || 'Director'}</strong>
+                </div>
+                <div style={{ fontSize: '11.5px', marginBottom: '8px', color: 'var(--color-text-secondary)' }}>
+                  Approval Date: {formatDate(voucher.approvalDate, true)}
+                </div>
+
+                <div className="signature-preview-box" style={{ margin: 0, maxWidth: '100%' }}>
+                  {voucher.directorSignature ? (
+                    <img
+                      src={getAuthSigUrl(voucher.directorSignature)}
+                      alt="Director Signature"
+                      className="signature-preview-img"
+                    />
+                  ) : (
+                    <span style={{ color: 'var(--color-text-secondary)', fontSize: '12px' }}>
+                      Director signature recorded in audit system
+                    </span>
+                  )}
+                </div>
+              </div>
+            ) : voucher.status === 'Rejected' ? (
+              <div>
+                {/* Section 7: Rejection Reason and Date */}
+                <div style={{ fontSize: '12px', color: 'var(--status-rejected-text)', fontWeight: 700, marginBottom: '6px' }}>
+                  ✕ Claim Rejected by Director
+                </div>
+                <div style={{ fontSize: '12px', marginBottom: '3px' }}>
+                  Reviewed By: <strong>{voucher.directorName || 'Director'}</strong>
+                </div>
+                {voucher.rejectionDate && (
+                  <div style={{ fontSize: '11.5px', marginBottom: '6px', color: 'var(--color-text-secondary)' }}>
+                    Rejection Date: {formatDate(voucher.rejectionDate, true)}
+                  </div>
+                )}
+                <div style={{ marginTop: '6px' }}>
+                  <span className="voucher-data-label">7. Stated Rejection Reason</span>
+                  <div
+                    style={{
+                      padding: '8px 10px',
+                      backgroundColor: 'var(--status-rejected-bg)',
+                      border: '1px solid var(--status-rejected-border)',
+                      borderRadius: 'var(--radius-sm)',
+                      color: 'var(--status-rejected-text)',
+                      fontSize: '12px',
+                      lineHeight: 1.4,
+                      marginTop: '4px'
+                    }}
+                  >
+                    "{voucher.rejectionReason}"
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ padding: '20px 10px', textAlign: 'center', color: 'var(--color-text-secondary)', fontSize: '12px' }}>
+                {voucher.status === 'Draft'
+                  ? 'Draft status. Signature and submission required.'
+                  : 'Awaiting Director review and authorization signature.'}
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Confirmation Modals */}
+      {/* Confirmation & Approval Modals */}
       <ConfirmModal
         isOpen={showDeleteModal}
         title="Delete Draft Voucher"
@@ -513,7 +550,7 @@ const VoucherDetailsPage = () => {
       <ConfirmModal
         isOpen={showSubmitModal}
         title="Submit Voucher for Director Approval"
-        message={`Submit voucher "${voucher.voucherNumber}" for ₹${voucher.amount.toLocaleString('en-IN')}? Once submitted, it will become read-only and queued for Director approval.`}
+        message={`Submit voucher "${voucher.voucherNumber}" for ₹${voucher.amount.toLocaleString('en-IN')}? Once submitted, this claim becomes read-only and queued for Director approval.`}
         confirmText="Confirm & Submit"
         confirmVariant="primary"
         isLoading={actionLoading}

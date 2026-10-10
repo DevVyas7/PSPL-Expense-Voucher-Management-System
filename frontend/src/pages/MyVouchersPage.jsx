@@ -68,12 +68,13 @@ const MyVouchersPage = () => {
     <div>
       <div className="page-header">
         <div className="page-title-group">
+          <div className="page-section-tag">Claimant Ledger &bull; History</div>
           <h1>My Expense Vouchers</h1>
-          <p>View, track, and manage all your submitted and draft expense claims.</p>
+          <p>View, track, and manage all your submitted claims, drafts, and approval history.</p>
         </div>
         <div className="page-actions">
           <Link to="/employee/create-voucher" className="btn btn-primary">
-            <span>➕</span> Create New Voucher
+            + New Voucher
           </Link>
         </div>
       </div>
@@ -88,27 +89,20 @@ const MyVouchersPage = () => {
         showEmployeeSearch={false}
       />
 
-      <div className="card">
-        <div className="card-header">
-          <h2 className="card-title">
-            Voucher Records ({vouchers.length})
-          </h2>
-        </div>
-        <div className="card-body" style={{ padding: 0 }}>
-          {loading ? (
-            <div className="spinner-container">
-              <div className="spinner" />
-              <p>Loading vouchers...</p>
-            </div>
-          ) : (
-            <VoucherTable
-              vouchers={vouchers}
-              showEmployeeColumn={false}
-              onDelete={(voucher) => setDeleteTarget(voucher)}
-              baseDetailPath="/employee/vouchers"
-            />
-          )}
-        </div>
+      <div className="card" style={{ border: 'none', boxShadow: 'none' }}>
+        {loading ? (
+          <div className="spinner-container">
+            <div className="spinner" />
+            <p>Loading your vouchers...</p>
+          </div>
+        ) : (
+          <VoucherTable
+            vouchers={vouchers}
+            showEmployeeColumn={false}
+            onDelete={(voucher) => setDeleteTarget(voucher)}
+            baseDetailPath="/employee/vouchers"
+          />
+        )}
       </div>
 
       <ConfirmModal

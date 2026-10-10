@@ -57,10 +57,9 @@ const AllVouchersPage = () => {
     <div>
       <div className="page-header">
         <div className="page-title-group">
+          <div className="page-section-tag">Organization Ledger &bull; All Departments</div>
           <h1>Company Expense Vouchers</h1>
-          <p>
-            Comprehensive ledger of all organization-wide expense claims across departments and statuses.
-          </p>
+          <p>Comprehensive ledger of all company expense claims across departments and approval statuses.</p>
         </div>
       </div>
 
@@ -74,24 +73,19 @@ const AllVouchersPage = () => {
         showEmployeeSearch={true}
       />
 
-      <div className="card">
-        <div className="card-header">
-          <h2 className="card-title">Vouchers Ledger ({vouchers.length})</h2>
-        </div>
-        <div className="card-body" style={{ padding: 0 }}>
-          {loading ? (
-            <div className="spinner-container">
-              <div className="spinner" />
-              <p>Loading vouchers ledger...</p>
-            </div>
-          ) : (
-            <VoucherTable
-              vouchers={vouchers}
-              showEmployeeColumn={true}
-              baseDetailPath={baseDetailPath}
-            />
-          )}
-        </div>
+      <div className="card" style={{ border: 'none', boxShadow: 'none' }}>
+        {loading ? (
+          <div className="spinner-container">
+            <div className="spinner" />
+            <p>Loading vouchers ledger...</p>
+          </div>
+        ) : (
+          <VoucherTable
+            vouchers={vouchers}
+            showEmployeeColumn={true}
+            baseDetailPath={baseDetailPath}
+          />
+        )}
       </div>
     </div>
   );

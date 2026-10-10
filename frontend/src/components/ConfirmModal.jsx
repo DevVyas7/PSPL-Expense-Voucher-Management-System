@@ -15,7 +15,7 @@ const ConfirmModal = ({
 
   return (
     <div className="modal-overlay">
-      <div className="modal-container">
+      <div className="modal-container" style={{ maxWidth: '460px' }}>
         <div className="modal-header">
           <h3 className="modal-title">{title}</h3>
           <button
@@ -23,12 +23,13 @@ const ConfirmModal = ({
             className="modal-close-btn"
             onClick={onCancel}
             disabled={isLoading}
+            aria-label="Close dialog"
           >
             ✕
           </button>
         </div>
         <div className="modal-body">
-          <p style={{ margin: 0, fontSize: '14px', lineHeight: 1.5, color: 'var(--color-text-main)' }}>
+          <p style={{ margin: 0, fontSize: '13.5px', lineHeight: 1.5, color: 'var(--color-text-main)' }}>
             {message}
           </p>
         </div>

@@ -11,27 +11,12 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(() => localStorage.getItem('pspl_token') || null);
   const [loading, setLoading] = useState(true);
 
-  // Verify stored session on app mount
-  useEffect(() => {
-    const verifyAuth = async () => {
-      const storedToken = localStorage.getItem('pspl_token');
-      if (storedToken) {
-        try {
-          const res = await authAPI.getMe();
-          if (res.success && res.user) {
-            setUser(res.user);
-            localStorage.setItem('pspl_user', JSON.stringify(res.user));
-          }
-        } catch (err) {
-          console.warn('Session verification failed, logging out');
-          logout();
-        }
-      }
-      setLoading(false);
-    };
-
-    verifyAuth();
-  }, []);
+  const logout = () => {
+    setUser(null);
+    setToken(null);
+    localStorage.removeItem('pspl_token');
+    localStorage.removeItem('pspl_user');
+  };
 
   const login = async (email, password) => {
     const res = await authAPI.login({ email, password });
@@ -46,12 +31,27 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    setToken(null);
-    localStorage.removeItem('pspl_token');
-    localStorage.removeItem('pspl_user');
-  };
+  // Verify stored session on app mount
+  useEffect(() => {
+    const verifyAuth = async () => {
+      const storedToken = localStorage.getItem('pspl_token');
+      if (storedToken) {
+        try {
+          const res = await authAPI.getMe();
+          if (res.success && res.user) {
+            setUser(res.user);
+            localStorage.setItem('pspl_user', JSON.stringify(res.user));
+          }
+        } catch (err) {
+          console.warn('Session verification failed, logging out:', err?.message || err);
+          logout();
+        }
+      }
+      setLoading(false);
+    };
+
+    verifyAuth();
+  }, []);
 
   const value = {
     user,

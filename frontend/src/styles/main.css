@@ -2,7 +2,9 @@
 @import './layout.css';
 @import './components.css';
 
-/* Base Global Resets */
+/* ==========================================================================
+   Global Base Resets
+   ========================================================================== */
 *, *::before, *::after {
   box-sizing: border-box;
 }
@@ -18,7 +20,7 @@ html, body {
 }
 
 a {
-  color: var(--color-primary);
+  color: #202020;
   text-decoration: none;
 }
 
@@ -26,128 +28,159 @@ a:hover {
   text-decoration: underline;
 }
 
-/* Login Page Styling */
+/* ==========================================================================
+   Login Page Styling (Enterprise Clean Architecture)
+   ========================================================================== */
 .login-page-wrapper {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-  padding: 24px;
+  background-color: var(--color-bg-page);
+  padding: 24px 16px;
 }
 
 .login-card {
-  background-color: #ffffff;
-  border-radius: var(--radius-lg);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  background-color: #FFFFFF;
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--color-border);
   width: 100%;
-  max-width: 440px;
+  max-width: 400px;
   overflow: hidden;
 }
 
 .login-header {
-  padding: 32px 32px 24px 32px;
+  padding: 24px 24px 18px 24px;
   text-align: center;
   border-bottom: 1px solid var(--color-border);
+  background-color: #FAFAFA;
 }
 
 .login-brand-icon {
-  width: 52px;
-  height: 52px;
-  margin: 0 auto 16px auto;
-  border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  width: 36px;
+  height: 36px;
+  margin: 0 auto 10px auto;
+  border-radius: var(--radius-xs);
+  background-color: #202020;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
-  font-weight: 700;
-  color: #ffffff;
-  box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--color-accent);
 }
 
 .login-header h1 {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 700;
-  color: var(--color-navy-dark);
-  margin: 0 0 6px 0;
+  color: #202020;
+  margin: 0 0 3px 0;
+  letter-spacing: -0.2px;
 }
 
 .login-header p {
-  font-size: 13px;
-  color: var(--color-text-muted);
+  font-size: 11.5px;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
   margin: 0;
 }
 
 .login-body {
-  padding: 32px;
+  padding: 22px 24px 24px 24px;
 }
 
 .demo-credentials-box {
-  background-color: #f8fafc;
+  background-color: var(--color-bg-subtle);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 16px;
-  margin-top: 24px;
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-top: 18px;
 }
 
 .demo-credentials-title {
-  font-size: 12px;
+  font-size: 10.5px;
   font-weight: 700;
   text-transform: uppercase;
-  color: #64748b;
-  margin-bottom: 10px;
+  letter-spacing: 0.5px;
+  color: var(--color-text-secondary);
+  margin-bottom: 6px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
 }
 
 .demo-btn-group {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  gap: 5px;
 }
 
 .btn-demo-pill {
-  background-color: #ffffff;
+  background-color: #FFFFFF;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 6px 4px;
+  border-radius: var(--radius-xs);
+  padding: 4px 2px;
   font-size: 11px;
   font-weight: 600;
-  color: var(--color-text-main);
+  color: #262626;
   cursor: pointer;
-  transition: var(--transition-normal);
+  transition: all var(--transition-fast);
   text-align: center;
 }
 
 .btn-demo-pill:hover {
-  background-color: #eff6ff;
-  border-color: #bfdbfe;
-  color: #2563eb;
+  background-color: #F0EFEA;
+  border-color: #D4D4D4;
+  color: #111111;
 }
 
-/* Print Styles for Voucher Detail Printout */
+/* ==========================================================================
+   Print Stylesheet
+   ========================================================================== */
 @media print {
   .app-sidebar,
   .app-topbar,
-  .page-actions,
+  .page-header .page-actions,
   .btn,
-  .sidebar-overlay {
+  .sidebar-overlay,
+  .modal-overlay,
+  .filter-card,
+  .nav-tabs-bar,
+  .table-toolbar,
+  .alert {
     display: none !important;
   }
 
+  body,
+  .app-wrapper,
   .app-container,
   .app-main,
   .page-content {
+    background-color: #FFFFFF !important;
     padding: 0 !important;
     margin: 0 !important;
     max-width: 100% !important;
-    background: #ffffff !important;
+    color: #000000 !important;
   }
 
-  .card {
-    border: 1px solid #ccc !important;
+  .card,
+  .voucher-document {
+    border: 1px solid #333333 !important;
     box-shadow: none !important;
+    margin-bottom: 12px !important;
+  }
+
+  .voucher-doc-masthead {
+    background-color: #F5F5F5 !important;
+    border-bottom: 1px solid #333333 !important;
+    padding: 10px !important;
+  }
+
+  .signature-card {
+    border: 1px solid #666666 !important;
+    background: #FFFFFF !important;
   }
 }

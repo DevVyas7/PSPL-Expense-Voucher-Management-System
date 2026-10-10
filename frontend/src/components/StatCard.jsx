@@ -7,14 +7,14 @@ const StatCard = ({ title, value, icon, colorTheme = 'blue', subtitle }) => {
         <span className="stat-title">{title}</span>
         <span className="stat-value">{value}</span>
         {subtitle && (
-          <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '4px' }}>
-            {subtitle}
-          </span>
+          <span className="stat-subtitle">{subtitle}</span>
         )}
       </div>
-      <div className={`stat-icon-wrapper stat-icon-${colorTheme}`}>
-        {icon}
-      </div>
+      {icon && (
+        <div className={`stat-icon-wrapper stat-icon-${colorTheme}`}>
+          {icon}
+        </div>
+      )}
     </div>
   );
 };

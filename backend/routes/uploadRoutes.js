@@ -3,8 +3,12 @@ const router = express.Router();
 const multer = require('multer');
 const upload = require('../middleware/upload');
 const { protect } = require('../middleware/auth');
+const { serveSignature } = require('../controllers/signatureController');
 
 router.use(protect);
+
+// Retrieve signature image with authentication and voucher authorization
+router.get('/signature/:filename', serveSignature);
 
 // Upload signature route
 router.post('/signature', (req, res) => {

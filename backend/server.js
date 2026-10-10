@@ -13,8 +13,21 @@ connectDB();
 const app = express();
 
 // Middlewares
+const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+const allowedOrigins = clientUrl.split(',').map((origin) => origin.trim());
+if (allowedOrigins.includes('http://localhost:5173') && !allowedOrigins.includes('http://127.0.0.1:5173')) {
+  allowedOrigins.push('http://127.0.0.1:5173');
+}
+
 app.use(cors({
-  origin: '*', // Allows local frontend development
+  origin: function (origin, callback) {
+    // Allow non-browser requests (no origin header, e.g. curl, tests, mobile)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS blocked: Origin '${origin}' is not permitted`));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -22,8 +35,10 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve uploaded signature images statically
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Protected endpoint for serving signature images with authentication & authorization
+const { protect } = require('./middleware/auth');
+const { serveSignature } = require('./controllers/signatureController');
+app.get('/uploads/:filename', protect, serveSignature);
 
 // API Routes
 app.use('/api/auth', require('./routes/authRoutes'));

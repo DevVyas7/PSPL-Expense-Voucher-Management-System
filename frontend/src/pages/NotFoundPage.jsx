@@ -14,15 +14,15 @@ const NotFoundPage = () => {
         padding: '24px'
       }}
     >
-      <div style={{ fontSize: '64px', marginBottom: '16px' }}>🔍</div>
-      <h1 style={{ fontSize: '32px', fontWeight: 700, margin: '0 0 12px 0', color: 'var(--color-navy-dark)' }}>
+      <div style={{ fontSize: '48px', marginBottom: '14px', opacity: 0.8 }}>🔍</div>
+      <h1 style={{ fontSize: '26px', fontWeight: 800, margin: '0 0 8px 0', color: 'var(--color-text-main)' }}>
         404 - Page Not Found
       </h1>
-      <p style={{ color: 'var(--color-text-muted)', maxWidth: '440px', margin: '0 0 24px 0', fontSize: '15px' }}>
-        The page or expense voucher resource you requested does not exist or may have been relocated.
+      <p style={{ color: 'var(--color-text-secondary)', maxWidth: '420px', margin: '0 0 20px 0', fontSize: '14px', lineHeight: 1.5 }}>
+        The page or voucher resource you requested does not exist or may have been relocated.
       </p>
       <Link to="/" className="btn btn-primary">
-        Return to Home
+        Return to Portal Home
       </Link>
     </div>
   );

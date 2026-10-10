@@ -99,6 +99,10 @@ const voucherSchema = new mongoose.Schema(
     rejectionReason: {
       type: String,
       default: null
+    },
+    rejectionDate: {
+      type: Date,
+      default: null
     }
   },
   {

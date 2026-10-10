@@ -21,13 +21,13 @@ const ApprovalModal = ({
 
     if (mode === 'approve') {
       if (!signature) {
-        setError('Director signature is mandatory to approve an expense voucher.');
+        setError('A Director signature is strictly mandatory to authorize this voucher.');
         return;
       }
       onConfirm({ directorSignature: signature });
     } else {
       if (!rejectionReason.trim()) {
-        setError('A rejection reason is mandatory when rejecting a voucher.');
+        setError('An explicit rejection reason is required.');
         return;
       }
       onConfirm({ rejectionReason: rejectionReason.trim() });
@@ -36,31 +36,34 @@ const ApprovalModal = ({
 
   return (
     <div className="modal-overlay">
-      <div className="modal-container" style={{ maxWidth: '580px' }}>
+      <div className="modal-container" style={{ maxWidth: '540px' }}>
         <form onSubmit={handleSubmit}>
           <div className="modal-header">
             <h3 className="modal-title">
-              {mode === 'approve' ? 'Approve Expense Voucher' : 'Reject Expense Voucher'}
+              {mode === 'approve' ? 'Authorize Expense Voucher' : 'Reject Expense Claim'}
             </h3>
             <button
               type="button"
               className="modal-close-btn"
               onClick={onCancel}
               disabled={isLoading}
+              aria-label="Close dialog"
             >
               ✕
             </button>
           </div>
 
           <div className="modal-body">
-            <div style={{ marginBottom: '16px', background: '#f8fafc', padding: '12px 16px', borderRadius: '8px' }}>
-              <div style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>Voucher Details</div>
-              <div style={{ fontWeight: 700, fontSize: '16px', color: 'var(--color-navy-dark)' }}>
-                {voucher.voucherNumber} — {voucher.expenseTitle}
+            <div style={{ marginBottom: '16px', background: 'var(--color-bg-page)', border: '1px solid var(--color-border)', padding: '12px 14px', borderRadius: 'var(--radius-sm)' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-secondary)' }}>
+                Target Voucher
               </div>
-              <div style={{ fontSize: '13px', marginTop: '4px' }}>
-                Employee: <strong>{voucher.employeeName}</strong> | Amount:{' '}
-                <strong>₹{Number(voucher.amount || 0).toLocaleString('en-IN')}</strong>
+              <div style={{ fontWeight: 700, fontSize: '15px', color: 'var(--color-text-main)', marginTop: '2px' }}>
+                <span style={{ fontFamily: 'monospace', color: 'var(--color-primary)' }}>{voucher.voucherNumber}</span> — {voucher.expenseTitle}
+              </div>
+              <div style={{ fontSize: '12.5px', marginTop: '4px', color: 'var(--color-text-secondary)' }}>
+                Claimant: <strong style={{ color: 'var(--color-text-main)' }}>{voucher.employeeName}</strong> &bull; Amount:{' '}
+                <strong style={{ color: 'var(--color-text-main)' }}>₹{Number(voucher.amount || 0).toLocaleString('en-IN')}</strong>
               </div>
             </div>
 
@@ -68,11 +71,11 @@ const ApprovalModal = ({
 
             {mode === 'approve' ? (
               <div>
-                <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '12px' }}>
-                  By approving this voucher, you authorize the expense reimbursement. Please provide your Director signature below.
+                <p style={{ fontSize: '12.5px', color: 'var(--color-text-secondary)', marginBottom: '12px', lineHeight: 1.4 }}>
+                  By providing authorization, you confirm that this expense claim complies with company financial policies and authorize disbursement.
                 </p>
                 <SignatureUpload
-                  label="Director Signature"
+                  label="Director Authorization Signature"
                   required={true}
                   value={signature}
                   onChange={setSignature}
@@ -88,11 +91,11 @@ const ApprovalModal = ({
                   rows={4}
                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
-                  placeholder="Specify the exact reason for rejecting this voucher (e.g. Missing valid tax invoice, amount exceeds department allowance, non-business expense)..."
+                  placeholder="State the specific audit or compliance reason for rejection (e.g. Ineligible business expense, exceeds travel allowance cap, missing invoice receipt)..."
                   required
                 />
                 <div className="form-helper">
-                  This explanation will be permanently recorded and visible to the employee.
+                  This justification will be permanently saved to the voucher audit trail and displayed to the claimant.
                 </div>
               </div>
             )}
@@ -115,8 +118,8 @@ const ApprovalModal = ({
               {isLoading
                 ? 'Processing...'
                 : mode === 'approve'
-                ? 'Confirm & Approve Voucher'
-                : 'Confirm & Reject Voucher'}
+                ? 'Authorize & Approve'
+                : 'Confirm Rejection'}
             </button>
           </div>
         </form>

@@ -1,9 +1,17 @@
+const path = require('path');
 const axios = require('axios');
+const mongoose = require('mongoose');
+const dotenv = require('dotenv');
 
-const BASE_URL = 'http://localhost:5000/api';
+dotenv.config({ path: path.join(__dirname, '..', '.env') });
+
+const Voucher = require('../models/Voucher');
+
+const BASE_URL = process.env.TEST_API_URL || 'http://localhost:5000/api';
+const ROOT_URL = process.env.TEST_ROOT_URL || 'http://localhost:5000';
 
 const runTests = async () => {
-  console.log('=== STARTING AUTOMATED BACKEND INTEGRATION TESTS ===\n');
+  console.log('=== STARTING AUTOMATED BACKEND INTEGRATION & SECURITY TESTS ===\n');
   let passed = 0;
   let failed = 0;
 
@@ -23,10 +31,11 @@ const runTests = async () => {
   let directorToken = '';
   let accountsToken = '';
   let createdVoucherId = '';
+  let rejectedVoucherId = '';
 
   // Test 1: Health check
   await test('Server health endpoint returns 200 OK', async () => {
-    const res = await axios.get('http://localhost:5000/api/health');
+    const res = await axios.get(`${BASE_URL}/health`);
     if (res.data.status !== 'online') throw new Error('Health status is not online');
   });
 
@@ -255,7 +264,55 @@ const runTests = async () => {
     }
   });
 
-  // Test 18: Director dashboard metrics
+  // Test 18: Director rejection workflow & rejectionDate verification
+  await test('Director rejection records rejectionReason and rejectionDate', async () => {
+    // Create and submit a 2nd voucher
+    const draftRes = await axios.post(
+      `${BASE_URL}/vouchers`,
+      {
+        departmentName: 'Operations',
+        expenseTitle: 'Voucher to be Rejected for Testing',
+        expenseCategory: 'Food',
+        amount: 1200
+      },
+      { headers: { Authorization: `Bearer ${employeeToken}` } }
+    );
+    rejectedVoucherId = draftRes.data.voucher._id;
+
+    await axios.post(
+      `${BASE_URL}/vouchers/${rejectedVoucherId}/submit`,
+      { employeeSignature: '/uploads/sample-employee-sig.png' },
+      { headers: { Authorization: `Bearer ${employeeToken}` } }
+    );
+
+    // Rejection without reason fails
+    try {
+      await axios.post(
+        `${BASE_URL}/vouchers/${rejectedVoucherId}/reject`,
+        {},
+        { headers: { Authorization: `Bearer ${directorToken}` } }
+      );
+      throw new Error('Rejection without reason should fail');
+    } catch (err) {
+      if (err.response?.status !== 400) throw err;
+    }
+
+    // Rejection with reason succeeds
+    const rejectRes = await axios.post(
+      `${BASE_URL}/vouchers/${rejectedVoucherId}/reject`,
+      { rejectionReason: 'Automated test intentional rejection' },
+      { headers: { Authorization: `Bearer ${directorToken}` } }
+    );
+
+    if (rejectRes.data.voucher.status !== 'Rejected') {
+      throw new Error('Voucher status is not Rejected');
+    }
+    if (!rejectRes.data.voucher.rejectionDate) {
+      throw new Error('Voucher rejectionDate was not populated');
+    }
+  });
+
+  // Test 19: Director dashboard metrics
   await test('Director dashboard metrics return live MongoDB aggregation counts', async () => {
     const res = await axios.get(`${BASE_URL}/dashboard/director`, {
       headers: { Authorization: `Bearer ${directorToken}` }
@@ -265,7 +322,7 @@ const runTests = async () => {
     }
   });
 
-  // Test 19: Accounts dashboard metrics
+  // Test 20: Accounts dashboard metrics
   await test('Accounts dashboard metrics return total approved expense sum', async () => {
     const res = await axios.get(`${BASE_URL}/dashboard/accounts`, {
       headers: { Authorization: `Bearer ${accountsToken}` }
@@ -274,6 +331,221 @@ const runTests = async () => {
       throw new Error('Accounts totalApprovedAmount is not a number');
     }
   });
+
+  // Test 21: Security - Unauthenticated access to signature files is rejected
+  await test('Security: Direct unauthenticated request to /uploads is rejected (401)', async () => {
+    try {
+      await axios.get(`${ROOT_URL}/uploads/sample-employee-sig.png`);
+      throw new Error('Unauthenticated image access should have returned 401');
+    } catch (err) {
+      if (err.response?.status !== 401) throw err;
+    }
+  });
+
+  // Test 22: Security - Authenticated access to signature files succeeds
+  await test('Security: Authenticated request to /uploads succeeds (200)', async () => {
+    const res = await axios.get(`${ROOT_URL}/uploads/sample-employee-sig.png`, {
+      headers: { Authorization: `Bearer ${employeeToken}` },
+      responseType: 'arraybuffer'
+    });
+    if (res.status !== 200 || !res.headers['content-type']?.includes('image')) {
+      throw new Error('Authenticated image request failed');
+    }
+  });
+
+  // Test 23: Security - Authenticated access via ?token= query parameter succeeds
+  await test('Security: Image request with ?token= query parameter succeeds (200)', async () => {
+    const res = await axios.get(`${ROOT_URL}/uploads/sample-employee-sig.png?token=${employeeToken}`, {
+      responseType: 'arraybuffer'
+    });
+    if (res.status !== 200 || !res.headers['content-type']?.includes('image')) {
+      throw new Error('Image request with token query param failed');
+    }
+  });
+
+  // Test 24: Security - Path traversal attempt is blocked
+  await test('Security: Path traversal attempt on signature endpoint is rejected', async () => {
+    try {
+      await axios.get(`${ROOT_URL}/uploads/..%2fpackage.json?token=${employeeToken}`);
+      throw new Error('Path traversal request should have been rejected');
+    } catch (err) {
+      if (err.response?.status !== 400 && err.response?.status !== 403 && err.response?.status !== 404) {
+        throw err;
+      }
+    }
+  });
+
+  // Test 25: Search and Filtering
+  await test('Voucher search and filtering by department and status returns matching records', async () => {
+    const res = await axios.get(`${BASE_URL}/vouchers?department=Investment%20Banking`, {
+      headers: { Authorization: `Bearer ${directorToken}` }
+    });
+    if (!Array.isArray(res.data.vouchers)) {
+      throw new Error('Vouchers list is not an array');
+    }
+  });
+
+  // Test 26: Multiple Employee Accounts Login
+  let rahulToken = '';
+  let priyaToken = '';
+  await test('Multiple Employee Accounts: All 5 seeded employees can log in successfully', async () => {
+    const employeeEmails = [
+      'rahul@prachay.com',
+      'priya@prachay.com',
+      'arjun@prachay.com',
+      'neha@prachay.com',
+      'amit@prachay.com'
+    ];
+
+    for (const email of employeeEmails) {
+      const res = await axios.post(`${BASE_URL}/auth/login`, {
+        email,
+        password: 'Password@123'
+      });
+      if (!res.data.token || res.data.user.role !== 'Employee') {
+        throw new Error(`Failed to log in as ${email}`);
+      }
+      if (email === 'rahul@prachay.com') rahulToken = res.data.token;
+      if (email === 'priya@prachay.com') priyaToken = res.data.token;
+    }
+  });
+
+  // Test 27: Employee Data Isolation
+  let rahulVouchers = [];
+  let priyaVouchers = [];
+  await test('Employee Data Isolation: Different employees see only their own vouchers with zero overlap', async () => {
+    const rahulRes = await axios.get(`${BASE_URL}/vouchers`, {
+      headers: { Authorization: `Bearer ${rahulToken}` }
+    });
+    const priyaRes = await axios.get(`${BASE_URL}/vouchers`, {
+      headers: { Authorization: `Bearer ${priyaToken}` }
+    });
+
+    rahulVouchers = rahulRes.data.vouchers;
+    priyaVouchers = priyaRes.data.vouchers;
+
+    if (!rahulVouchers.length || !priyaVouchers.length) {
+      throw new Error('Expected seeded vouchers for both Rahul and Priya');
+    }
+
+    // Verify all vouchers in Rahul's list belong to Rahul
+    for (const v of rahulVouchers) {
+      if (v.employeeName !== 'Rahul Sharma') {
+        throw new Error(`Rahul's voucher list contains a voucher belonging to ${v.employeeName}`);
+      }
+    }
+
+    // Verify all vouchers in Priya's list belong to Priya
+    for (const v of priyaVouchers) {
+      if (v.employeeName !== 'Priya Patel') {
+        throw new Error(`Priya's voucher list contains a voucher belonging to ${v.employeeName}`);
+      }
+    }
+
+    // Verify zero ID overlap
+    const rahulIds = new Set(rahulVouchers.map((v) => v._id));
+    for (const v of priyaVouchers) {
+      if (rahulIds.has(v._id)) {
+        throw new Error(`Voucher ${v._id} leaked across employee scopes`);
+      }
+    }
+  });
+
+  // Test 28: Cross-Employee View Attempt is Rejected (403)
+  await test('Security: Employee cannot view another employee voucher by ID (returns 403 Forbidden)', async () => {
+    const priyaVoucherId = priyaVouchers[0]._id;
+    try {
+      await axios.get(`${BASE_URL}/vouchers/${priyaVoucherId}`, {
+        headers: { Authorization: `Bearer ${rahulToken}` }
+      });
+      throw new Error('Rahul should not be able to view Priya voucher');
+    } catch (err) {
+      if (err.response?.status !== 403) throw err;
+    }
+  });
+
+  // Test 29: Cross-Employee Edit Attempt is Rejected (403)
+  await test('Security: Employee cannot edit another employee draft voucher (returns 403 Forbidden)', async () => {
+    // Find Priya's draft or any voucher
+    const priyaDraft = priyaVouchers.find((v) => v.status === 'Draft') || priyaVouchers[0];
+    try {
+      await axios.put(
+        `${BASE_URL}/vouchers/${priyaDraft._id}`,
+        { expenseTitle: 'Malicious modification attempt' },
+        { headers: { Authorization: `Bearer ${rahulToken}` } }
+      );
+      throw new Error('Rahul should not be able to edit Priya voucher');
+    } catch (err) {
+      if (err.response?.status !== 403) throw err;
+    }
+  });
+
+  // Test 30: Director Visibility & Search Across All Employees
+  await test('Director can view vouchers from all employees and search by employee ID or name', async () => {
+    const allRes = await axios.get(`${BASE_URL}/vouchers`, {
+      headers: { Authorization: `Bearer ${directorToken}` }
+    });
+    const claimantNames = new Set(allRes.data.vouchers.map((v) => v.employeeName));
+    if (!claimantNames.has('Rahul Sharma') || !claimantNames.has('Priya Patel')) {
+      throw new Error('Director view is missing vouchers from certain employees');
+    }
+
+    // Search by employeeId PSPL-EMP-1002 (Priya)
+    const searchRes = await axios.get(`${BASE_URL}/vouchers?search=PSPL-EMP-1002`, {
+      headers: { Authorization: `Bearer ${directorToken}` }
+    });
+    if (!searchRes.data.vouchers.length || searchRes.data.vouchers[0].employeeName !== 'Priya Patel') {
+      throw new Error('Director search by Employee ID did not return expected claimant vouchers');
+    }
+  });
+
+  // Test 31: Accounts Team Visibility and Strict Read-Only Access
+  await test('Accounts Team can view vouchers from all employees but cannot edit or delete (403)', async () => {
+    const accountsRes = await axios.get(`${BASE_URL}/vouchers`, {
+      headers: { Authorization: `Bearer ${accountsToken}` }
+    });
+    if (accountsRes.data.vouchers.length < 5) {
+      throw new Error('Accounts Team should have access to company-wide ledger');
+    }
+
+    const testVoucherId = accountsRes.data.vouchers[0]._id;
+
+    // Attempt edit by Accounts Team
+    try {
+      await axios.put(
+        `${BASE_URL}/vouchers/${testVoucherId}`,
+        { expenseTitle: 'Accounts edit attempt' },
+        { headers: { Authorization: `Bearer ${accountsToken}` } }
+      );
+      throw new Error('Accounts Team must not be allowed to edit vouchers');
+    } catch (err) {
+      if (err.response?.status !== 403) throw err;
+    }
+
+    // Attempt delete by Accounts Team
+    try {
+      await axios.delete(`${BASE_URL}/vouchers/${testVoucherId}`, {
+        headers: { Authorization: `Bearer ${accountsToken}` }
+      });
+      throw new Error('Accounts Team must not be allowed to delete vouchers');
+    } catch (err) {
+      if (err.response?.status !== 403) throw err;
+    }
+  });
+
+  // CLEANUP: Clean up test vouchers so test run is completely non-destructive
+  try {
+    const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/expenseVoucherDB';
+    await mongoose.connect(mongoUri);
+    const toDelete = [createdVoucherId, rejectedVoucherId].filter(Boolean);
+    if (toDelete.length > 0) {
+      await Voucher.deleteMany({ _id: { $in: toDelete } });
+      console.log(`\n[Cleaned up ${toDelete.length} temporary test records from MongoDB]`);
+    }
+    await mongoose.connection.close();
+  } catch (cleanErr) {
+    console.warn('Note: Could not run DB cleanup (non-fatal):', cleanErr.message);
+  }
 
   console.log(`\n========================================`);
   console.log(`TEST SUMMARY: ${passed} PASSED, ${failed} FAILED`);

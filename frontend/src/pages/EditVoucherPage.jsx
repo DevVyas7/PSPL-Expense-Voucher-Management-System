@@ -4,12 +4,14 @@ import { voucherAPI } from '../services/api';
 import SignatureUpload from '../components/SignatureUpload';
 
 const departmentsList = [
-  'Investment Banking',
+  'Finance',
+  'Human Resources',
+  'Technology',
+  'Marketing',
   'Operations',
+  'Investment Banking',
   'Research & Equity',
   'IT & Systems',
-  'Human Resources',
-  'Accounts & Finance',
   'Compliance & Legal'
 ];
 
@@ -94,7 +96,7 @@ const EditVoucherPage = () => {
 
     const parsedAmount = Number(formData.amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      setError('Amount must be greater than zero.');
+      setError('Amount must be a valid number greater than zero.');
       return;
     }
 
@@ -104,6 +106,7 @@ const EditVoucherPage = () => {
         ...formData,
         amount: parsedAmount
       });
+
       if (res.success) {
         navigate(`/employee/vouchers/${id}`);
       }
@@ -122,35 +125,43 @@ const EditVoucherPage = () => {
       setError('Department is required.');
       return;
     }
+
     if (!formData.expenseTitle.trim()) {
-      setError('Expense Title is required.');
+      setError('Expense title is required.');
       return;
     }
+
     if (!formData.expenseDate) {
-      setError('Expense Date is required.');
+      setError('Expense date is required.');
       return;
     }
+
     const parsedAmount = Number(formData.amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       setError('Amount must be greater than zero.');
       return;
     }
+
     if (!formData.employeeSignature) {
-      setError('Employee signature must be uploaded before submission.');
+      setError('An employee signature is strictly required before submitting for Director approval.');
       return;
     }
 
     try {
       setSaving(true);
-      const res = await voucherAPI.submitVoucher(id, {
+      const updateRes = await voucherAPI.updateVoucher(id, {
         ...formData,
         amount: parsedAmount
       });
-      if (res.success) {
-        navigate(`/employee/vouchers/${id}`);
+
+      if (updateRes.success) {
+        const submitRes = await voucherAPI.submitVoucher(id);
+        if (submitRes.success) {
+          navigate(`/employee/vouchers/${id}`);
+        }
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to submit voucher for approval');
+      setError(err.response?.data?.message || 'Failed to submit voucher');
     } finally {
       setSaving(false);
     }
@@ -160,7 +171,7 @@ const EditVoucherPage = () => {
     return (
       <div className="spinner-container">
         <div className="spinner" />
-        <p>Loading voucher...</p>
+        <p>Loading draft voucher data...</p>
       </div>
     );
   }
@@ -170,14 +181,14 @@ const EditVoucherPage = () => {
       <div className="card">
         <div className="card-body">
           <div className="alert alert-error">
-            {error || 'This voucher cannot be edited because it is no longer in Draft status.'}
+            Cannot edit voucher "{voucher.voucherNumber}" with status "{voucher.status}". Only Draft vouchers can be modified.
           </div>
           <button
             type="button"
             className="btn btn-secondary"
             onClick={() => navigate(`/employee/vouchers/${id}`)}
           >
-            ← Back to Voucher Details
+            ← View Voucher Details
           </button>
         </div>
       </div>
@@ -188,8 +199,9 @@ const EditVoucherPage = () => {
     <div>
       <div className="page-header">
         <div className="page-title-group">
-          <h1>Edit Draft Voucher: {voucher?.voucherNumber}</h1>
-          <p>Modify expense line items or attach your signature prior to final submission.</p>
+          <div className="page-section-tag">Draft Revision &bull; {voucher?.voucherNumber}</div>
+          <h1>Edit Draft Voucher</h1>
+          <p>Modify expense particulars or attach signature before submitting for Director approval.</p>
         </div>
       </div>
 
@@ -197,141 +209,203 @@ const EditVoucherPage = () => {
 
       <div className="card">
         <div className="card-header">
-          <h2 className="card-title">Draft Edit Form</h2>
-          <span style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>
-            Voucher #{voucher?.voucherNumber}
+          <h2 className="card-title">Edit Voucher Form</h2>
+          <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: 600 }}>
+            Status: Draft
           </span>
         </div>
 
         <div className="card-body">
           <form>
-            <div className="form-grid">
+            {/* Section 1: Identification */}
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#202020', marginBottom: '10px' }}>
+                1. Claimant & Voucher Identification
+              </div>
+              <div className="form-grid">
+                <div className="form-group">
+                  <label className="form-label">Voucher Reference Number</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={voucher?.voucherNumber || ''}
+                    readOnly
+                    disabled
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Claimant Employee Name</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={voucher?.employeeName || ''}
+                    readOnly
+                    disabled
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Employee ID</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={voucher?.employeeId || 'N/A'}
+                    readOnly
+                    disabled
+                  />
+                </div>
+              </div>
+            </div>
+
+            <hr style={{ border: 'none', borderTop: '1px solid var(--color-border)', margin: '16px 0' }} />
+
+            {/* Section 2: Expense Particulars */}
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#202020', marginBottom: '10px' }}>
+                2. Expense Details & Justification
+              </div>
+
+              <div className="form-grid">
+                <div className="form-group">
+                  <label className="form-label">
+                    Expense Incurred Date <span className="required">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    name="expenseDate"
+                    className="form-control"
+                    value={formData.expenseDate}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">
+                    Allocated Department <span className="required">*</span>
+                  </label>
+                  <select
+                    name="departmentName"
+                    className="form-select"
+                    value={formData.departmentName}
+                    onChange={handleChange}
+                    required
+                  >
+                    {departmentsList.map((dept) => (
+                      <option key={dept} value={dept}>
+                        {dept}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">
+                    Expense Category <span className="required">*</span>
+                  </label>
+                  <select
+                    name="expenseCategory"
+                    className="form-select"
+                    value={formData.expenseCategory}
+                    onChange={handleChange}
+                    required
+                  >
+                    {categoriesList.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">
+                    Claim Amount (₹) <span className="required">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    name="amount"
+                    step="0.01"
+                    min="0.01"
+                    className="form-control"
+                    placeholder="0.00"
+                    value={formData.amount}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+              </div>
+
               <div className="form-group">
                 <label className="form-label">
-                  Expense Date <span className="required">*</span>
+                  Expense Title / Purpose <span className="required">*</span>
                 </label>
                 <input
-                  type="date"
-                  name="expenseDate"
+                  type="text"
+                  name="expenseTitle"
                   className="form-control"
-                  value={formData.expenseDate}
+                  value={formData.expenseTitle}
                   onChange={handleChange}
                   required
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">
-                  Department Name <span className="required">*</span>
-                </label>
-                <select
-                  name="departmentName"
-                  className="form-select"
-                  value={formData.departmentName}
+                <label className="form-label">Itemized Description & Justification</label>
+                <textarea
+                  name="expenseDescription"
+                  className="form-textarea"
+                  rows={3}
+                  value={formData.expenseDescription}
                   onChange={handleChange}
-                  required
-                >
-                  {departmentsList.map((dept) => (
-                    <option key={dept} value={dept}>
-                      {dept}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">
-                  Expense Category <span className="required">*</span>
-                </label>
-                <select
-                  name="expenseCategory"
-                  className="form-select"
-                  value={formData.expenseCategory}
-                  onChange={handleChange}
-                  required
-                >
-                  {categoriesList.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">
-                  Amount (₹) <span className="required">*</span>
-                </label>
-                <input
-                  type="number"
-                  name="amount"
-                  step="0.01"
-                  min="0.01"
-                  className="form-control"
-                  value={formData.amount}
-                  onChange={handleChange}
-                  required
                 />
               </div>
             </div>
 
-            <div className="form-group">
-              <label className="form-label">
-                Expense Title <span className="required">*</span>
-              </label>
-              <input
-                type="text"
-                name="expenseTitle"
-                className="form-control"
-                value={formData.expenseTitle}
-                onChange={handleChange}
-                required
+            <hr style={{ border: 'none', borderTop: '1px solid var(--color-border)', margin: '16px 0' }} />
+
+            {/* Section 3: Signature */}
+            <div style={{ marginBottom: '18px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#202020', marginBottom: '10px' }}>
+                3. Attestation & Claimant Signature
+              </div>
+
+              <SignatureUpload
+                label="Employee Claimant Signature"
+                required={false}
+                value={formData.employeeSignature}
+                onChange={handleSignatureChange}
               />
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Expense Description</label>
-              <textarea
-                name="expenseDescription"
-                className="form-textarea"
-                rows={3}
-                value={formData.expenseDescription}
-                onChange={handleChange}
-              />
-            </div>
-
-            <hr style={{ border: 'none', borderTop: '1px solid var(--color-border)', margin: '20px 0' }} />
-
-            <SignatureUpload
-              label="Employee Signature"
-              value={formData.employeeSignature}
-              onChange={handleSignatureChange}
-            />
-
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '24px' }}>
+            {/* Actions Bar */}
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap', borderTop: '1px solid var(--color-border)', paddingTop: '14px' }}>
               <button
                 type="button"
-                onClick={() => navigate('/employee/my-vouchers')}
+                onClick={() => navigate(`/employee/vouchers/${id}`)}
                 className="btn btn-secondary"
                 disabled={saving}
               >
                 Cancel
               </button>
+
               <button
                 type="button"
                 onClick={handleSaveDraft}
                 className="btn btn-secondary"
                 disabled={saving}
               >
-                {saving ? 'Saving...' : '💾 Update Draft'}
+                {saving ? 'Updating...' : 'Save Draft Updates'}
               </button>
+
               <button
                 type="button"
                 onClick={handleSubmitForApproval}
                 className="btn btn-primary"
                 disabled={saving}
               >
-                {saving ? 'Submitting...' : '🚀 Submit for Approval'}
+                {saving ? 'Submitting...' : 'Submit for Approval'}
               </button>
             </div>
           </form>

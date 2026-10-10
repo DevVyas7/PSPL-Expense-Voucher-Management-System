@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { uploadAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 const SignatureUpload = ({
   value,
@@ -8,10 +9,19 @@ const SignatureUpload = ({
   required = false,
   readOnly = false
 }) => {
+  const { token } = useAuth();
   const [activeTab, setActiveTab] = useState('upload'); // 'upload' | 'draw'
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState('');
   const [previewUrl, setPreviewUrl] = useState(value || '');
+
+  const getAuthPreviewUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('/uploads/') && token) {
+      return `${url}?token=${encodeURIComponent(token)}`;
+    }
+    return url;
+  };
 
   const fileInputRef = useRef(null);
   const canvasRef = useRef(null);
@@ -34,14 +44,14 @@ const SignatureUpload = ({
     // Validate type
     const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
     if (!validTypes.includes(file.type)) {
-      setError('Invalid file type. Only JPEG, PNG, and WebP image files are allowed.');
+      setError('Invalid file type. Only JPEG, PNG, and WebP image files are permitted.');
       return;
     }
 
     // Validate size (2MB)
     const maxSize = 2 * 1024 * 1024;
     if (file.size > maxSize) {
-      setError('File size exceeds the 2 MB limit. Please select a smaller image.');
+      setError('File size exceeds the 2 MB limit. Please select a smaller file.');
       return;
     }
 
@@ -87,8 +97,8 @@ const SignatureUpload = ({
     const y = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
 
     ctx.lineTo(x, y);
-    ctx.strokeStyle = '#0f172a';
-    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = '#202B3C';
+    ctx.lineWidth = 2.2;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.stroke();
@@ -155,36 +165,36 @@ const SignatureUpload = ({
       {readOnly ? (
         <div className="signature-preview-box">
           {previewUrl ? (
-            <img src={previewUrl} alt="Signature" className="signature-preview-img" />
+            <img src={getAuthPreviewUrl(previewUrl)} alt="Signature" className="signature-preview-img" />
           ) : (
-            <span style={{ color: 'var(--color-text-muted)', fontSize: '13px' }}>
+            <span style={{ color: 'var(--color-text-secondary)', fontSize: '12px' }}>
               No signature on file
             </span>
           )}
         </div>
       ) : (
         <div className="signature-section">
-          {/* Tab Selection */}
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+          {/* Tab Selector */}
+          <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
             <button
               type="button"
               className={`btn btn-sm ${activeTab === 'upload' ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => setActiveTab('upload')}
             >
-              Upload Image File
+              Upload Image
             </button>
             <button
               type="button"
               className={`btn btn-sm ${activeTab === 'draw' ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => setActiveTab('draw')}
             >
-              Draw Digital Signature
+              Draw Signature
             </button>
           </div>
 
-          {error && <div className="alert alert-error" style={{ padding: '8px 12px' }}>{error}</div>}
+          {error && <div className="alert alert-error" style={{ padding: '6px 10px', fontSize: '12px' }}>{error}</div>}
 
-          {/* Upload Tab */}
+          {/* Upload Mode */}
           {activeTab === 'upload' && (
             <div>
               <input
@@ -196,13 +206,13 @@ const SignatureUpload = ({
                 id="signature-file-input"
               />
 
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                 <label
                   htmlFor="signature-file-input"
                   className="btn btn-secondary btn-sm"
-                  style={{ cursor: isUploading ? 'not-allowed' : 'pointer' }}
+                  style={{ cursor: isUploading ? 'not-allowed' : 'pointer', margin: 0 }}
                 >
-                  {isUploading ? 'Uploading...' : 'Choose File (JPEG, PNG, WebP)'}
+                  {isUploading ? 'Uploading Signature...' : 'Select File (JPEG, PNG, WebP)'}
                 </label>
 
                 {previewUrl && (
@@ -211,26 +221,26 @@ const SignatureUpload = ({
                     onClick={handleClearSignature}
                     className="btn btn-outline-danger btn-sm"
                   >
-                    Remove Signature
+                    Clear Attached Signature
                   </button>
                 )}
               </div>
               <div className="form-helper">
-                Accepts JPEG, PNG, WebP up to 2 MB.
+                Permitted formats: JPEG, PNG, WebP (Max 2 MB).
               </div>
             </div>
           )}
 
-          {/* Draw Tab */}
+          {/* Draw Mode */}
           {activeTab === 'draw' && (
             <div>
-              <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', margin: '0 0 8px 0' }}>
-                Draw your signature in the box below using mouse, pen, or touch:
+              <p style={{ fontSize: '12px', color: 'var(--color-text-secondary)', margin: '0 0 6px 0' }}>
+                Use mouse, touchpad, or pen to sign within the designated boundary:
               </p>
               <canvas
                 ref={canvasRef}
                 width={360}
-                height={130}
+                height={120}
                 className="signature-canvas"
                 onMouseDown={startDrawing}
                 onMouseMove={draw}
@@ -240,7 +250,7 @@ const SignatureUpload = ({
                 onTouchMove={draw}
                 onTouchEnd={stopDrawing}
               />
-              <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+              <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
                 <button
                   type="button"
                   className="btn btn-primary btn-sm"
@@ -262,12 +272,12 @@ const SignatureUpload = ({
 
           {/* Current Saved Preview */}
           {previewUrl && (
-            <div style={{ marginTop: '16px' }}>
-              <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: '4px' }}>
-                Current Signature Preview:
+            <div style={{ marginTop: '14px', borderTop: '1px solid var(--color-border)', paddingTop: '10px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>
+                Attached Signature:
               </div>
               <div className="signature-preview-box">
-                <img src={previewUrl} alt="Signature Preview" className="signature-preview-img" />
+                <img src={getAuthPreviewUrl(previewUrl)} alt="Signature Preview" className="signature-preview-img" />
               </div>
             </div>
           )}

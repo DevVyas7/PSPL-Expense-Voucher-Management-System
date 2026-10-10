@@ -26,14 +26,26 @@ const getVouchers = async (req, res) => {
       query.employee = req.user._id;
     }
 
-    // Search by Voucher Number or Employee Name (sanitized regex)
+    // Search by Voucher Number, Employee Name, or Employee ID (sanitized regex)
     if (search && search.trim()) {
       const sanitizedSearch = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const searchRegex = new RegExp(sanitizedSearch, 'i');
       query.$or = [
         { voucherNumber: searchRegex },
-        { employeeName: searchRegex }
+        { employeeName: searchRegex },
+        { employeeId: searchRegex }
       ];
+    }
+
+    // Filter: Employee ID (direct match or prefix)
+    if (req.query.employeeId && req.query.employeeId.trim()) {
+      query.employeeId = req.query.employeeId.trim();
+    }
+
+    // Filter: Employee Name
+    if (req.query.employeeName && req.query.employeeName.trim()) {
+      const sanitized = req.query.employeeName.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      query.employeeName = new RegExp(sanitized, 'i');
     }
 
     // Filter: Department
@@ -530,6 +542,7 @@ const approveVoucher = async (req, res) => {
     voucher.directorSignature = directorSignature.trim();
     voucher.approvalDate = new Date();
     voucher.rejectionReason = null; // Clear any previous rejection reason
+    voucher.rejectionDate = null;
 
     await voucher.save();
 
@@ -592,6 +605,7 @@ const rejectVoucher = async (req, res) => {
     voucher.director = req.user._id;
     voucher.directorName = req.user.name;
     voucher.rejectionReason = rejectionReason.trim();
+    voucher.rejectionDate = new Date();
 
     await voucher.save();
 

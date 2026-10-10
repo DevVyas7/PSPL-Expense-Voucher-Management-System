@@ -1,421 +1,416 @@
 # PSPL Expense Voucher Management System
 
-A production-ready Full Stack MERN application developed for **Prachay Securities Private Limited (PSPL)** for evaluating Full Stack Developer Internship candidates.
+## About the project
 
-The application manages the end-to-end employee expense reimbursement lifecycle—from drafting claims, digital signature attachment, and Director executive approval/rejection workflows to Accounts Team reimbursement audit monitoring.
+The PSPL Expense Voucher Management System is a full-stack web
+application built for Prachay Securities Private Limited (PSPL) as part
+of a Full Stack Developer Internship assignment.
 
----
+It helps employees prepare and submit expense vouchers, lets a Director
+review and approve or reject them, and gives the Accounts Team read-only
+access to voucher records for reimbursement tracking. Each role has its
+own dashboard and permissions.
 
-## 1. Project Overview
+## What the application can do
 
-Prachay Securities Private Limited (PSPL) requires a centralized corporate expense voucher management platform. The system enforces strict role-based access control (RBAC), multi-step voucher state transitions, tamper-proof uniqueness for voucher numbering, and digital signature uploads using Multer and HTML5 canvas pads.
+-   **Separate access for each role:** Employees, the Director, and the
+    Accounts Team see the pages and actions relevant to their work.
+-   **Create and manage drafts:** Employees can save a voucher as a
+    draft and edit or delete it before submission.
+-   **Submit for approval:** A submitted voucher must contain the
+    required information and an employee signature. After submission,
+    the employee can no longer edit it.
+-   **Approve or reject vouchers:** The Director can approve a pending
+    voucher with a signature or reject it with a reason.
+-   **Read-only accounts view:** The Accounts Team can review vouchers
+    across the organisation, including their status and signatures, but
+    cannot change them.
+-   **Unique voucher numbers:** The application generates voucher
+    numbers in the `EXP-YYYY-XXXX` format using a MongoDB counter.
+-   **Signature options:** A user can upload a JPEG, PNG, or WebP image
+    (up to 2 MB) or draw a signature on a canvas.
+-   **Search and filters:** Vouchers can be searched and filtered by
+    details such as voucher number, employee, department, category,
+    status, date, and amount. Sorting is also available.
+-   **Printable records:** Voucher details include print-friendly
+    styling.
 
----
-
-## 2. Features
-
-- **Role-Based Portals:** Dedicated dashboards and custom views tailored for **Employee**, **Director**, and **Accounts Team**.
-- **Idempotent Database Seeding:** Seed demonstration accounts and initial vouchers with zero duplication on repeated executions.
-- **Atomic Voucher Numbering:** Sequential voucher IDs (`EXP-YYYY-XXXX`) generated atomically via MongoDB counters to prevent collisions even under high concurrency.
-- **Draft & Submission Lifecycle:**
-  - Create drafts without signatures.
-  - Edit or delete drafts at will.
-  - Strict submission validation requiring all mandatory details and employee signatures.
-  - Post-submission state locks vouchers as read-only to employees.
-- **Executive Director Approval & Rejection:**
-  - Director approval requires a mandatory Director signature.
-  - Director rejection requires a mandatory rejection reason permanently visible to the employee.
-  - Single-decision enforcement: vouchers cannot be approved or rejected multiple times.
-  - Zero modification of employee-entered expense details by executives.
-- **Accounts Team Financial Ledger:**
-  - Live pipeline tracking approved expense totals and recent approvals.
-  - Read-only audit access across all organization-wide vouchers.
-- **Dual Signature Input:** Upload image files (JPEG, PNG, WebP ≤ 2MB) or draw interactive digital signatures on an HTML5 canvas.
-- **Search, Multi-Filter & Sorting:**
-  - Search by voucher number or employee name.
-  - Filter by department, expense category, voucher status, date range, and amount range.
-  - Sort by newest, oldest, amount (low-to-high, high-to-low).
-  - Clear filters button to instantly reset all query parameters.
-- **Printable Vouchers:** Clean CSS print styles for voucher record printouts.
-
----
-
-## 3. Technology Stack
+## Technology used
 
 ### Frontend
-- **Framework:** React.js (via Vite)
-- **Language:** JavaScript (JSX only — no TypeScript)
-- **Styling:** Plain CSS with custom design tokens, dark navy sidebar, cards, and responsive layouts (no Tailwind, no Bootstrap)
-- **Routing:** React Router v7 (`react-router-dom`)
-- **HTTP Client:** Axios with centralized interceptors for JWT token injection and 401 redirect handling
+
+-   React with Vite
+-   JavaScript and JSX
+-   Plain CSS
+-   React Router
+-   Axios for API requests
 
 ### Backend
-- **Runtime:** Node.js (v24+)
-- **Framework:** Express.js (v5+)
-- **Database:** MongoDB & Mongoose (v9+)
-- **Authentication:** JSON Web Tokens (`jsonwebtoken`) & `bcryptjs`
-- **File Uploads:** Multer with MIME validation and 2MB file size limits
-- **CORS:** Cross-Origin Resource Sharing enabled
 
----
+-   Node.js
+-   Express
+-   MongoDB with Mongoose
+-   JSON Web Tokens (JWT) for authentication
+-   `bcryptjs` for password hashing
+-   Multer for signature uploads
 
-## 4. Prerequisites
+The project uses JavaScript and plain CSS; it does not require
+TypeScript, Tailwind CSS, or Bootstrap.
 
-Before running the application locally, ensure you have:
-1. **Node.js**: v18.x, v20.x, or v24.x installed (`node -v`)
-2. **npm**: v9.x or higher (`npm -v`)
-3. **MongoDB**: Local MongoDB community server running on port `27017` (e.g. `mongodb://127.0.0.1:27017`) or a MongoDB Atlas URI
+## Before you start
 
----
+Install the following on your computer:
 
-## 5. Project Folder Structure
+1.  **Node.js** (18.x, 20.x, or 24.x is listed as supported by the
+    project).
+2.  **npm** (version 9 or later).
+3.  **MongoDB**, running locally on port `27017`, or a MongoDB Atlas
+    connection string.
 
+You can check your installed versions with:
+
+``` bash
+node -v
+npm -v
 ```
+
+## Project structure
+
+The main folders are organised as follows:
+
+``` text
 Expense Voucher Management System/
 ├── backend/
-│   ├── config/
-│   │   └── db.js                 # Mongoose connection setup
-│   ├── controllers/
-│   │   ├── authController.js      # Login and user profile logic
-│   │   ├── dashboardController.js # Aggregations for 3 dashboards
-│   │   └── voucherController.js   # CRUD & approval workflows
-│   ├── middleware/
-│   │   ├── auth.js               # JWT protect & role authorize
-│   │   └── upload.js             # Multer config (2MB, JPEG/PNG/WebP)
-│   ├── models/
-│   │   ├── Counter.js            # Atomic sequence generator
-│   │   ├── User.js               # User schema with bcrypt hashing
-│   │   └── Voucher.js            # Voucher schema and indexes
-│   ├── routes/
-│   │   ├── authRoutes.js         # /api/auth
-│   │   ├── dashboardRoutes.js    # /api/dashboard
-│   │   ├── uploadRoutes.js       # /api/upload
-│   │   └── voucherRoutes.js      # /api/vouchers
-│   ├── scripts/
-│   │   ├── seed.js               # Idempotent DB seeder
-│   │   └── test_api.js           # 19 automated integration tests
-│   ├── uploads/                  # Uploaded signature images
-│   ├── .env                      # Local environment configuration
-│   ├── .env.example              # Environment variables template
-│   ├── package.json              # Backend dependencies and scripts
-│   └── server.js                 # Express server entry point
+│   ├── config/          # Database connection
+│   ├── controllers/     # Authentication, dashboard and voucher logic
+│   ├── middleware/      # Authentication, permissions and uploads
+│   ├── models/          # User, voucher and counter schemas
+│   ├── routes/          # API routes
+│   ├── scripts/         # Database seeding and API tests
+│   ├── uploads/         # Uploaded signature images
+│   ├── .env.example     # Environment variable template
+│   ├── package.json
+│   └── server.js        # Backend entry point
 ├── frontend/
 │   ├── public/
 │   ├── src/
-│   │   ├── components/
-│   │   │   ├── ApprovalModal.jsx # Director approve/reject modal
-│   │   │   ├── ConfirmModal.jsx  # Reusable confirmation dialog
-│   │   │   ├── FilterBar.jsx     # Search, filter & sort controls
-│   │   │   ├── ProtectedRoute.jsx# Auth and RBAC route wrapper
-│   │   │   ├── SignatureUpload.jsx# File upload & Canvas pad
-│   │   │   ├── StatCard.jsx      # Dashboard KPI cards
-│   │   │   ├── StatusBadge.jsx   # Draft/Pending/Approved/Rejected
-│   │   │   └── VoucherTable.jsx  # Reusable vouchers data table
-│   │   ├── context/
-│   │   │   └── AuthContext.jsx   # User session and auth state
-│   │   ├── layouts/
-│   │   │   └── AppLayout.jsx     # Sidebar, topbar, mobile drawer
-│   │   ├── pages/
-│   │   │   ├── AccountsDashboard.jsx
-│   │   │   ├── AllVouchersPage.jsx
-│   │   │   ├── CreateVoucherPage.jsx
-│   │   │   ├── DirectorDashboard.jsx
-│   │   │   ├── EditVoucherPage.jsx
-│   │   │   ├── EmployeeDashboard.jsx
-│   │   │   ├── LoginPage.jsx
-│   │   │   ├── MyVouchersPage.jsx
-│   │   │   ├── NotFoundPage.jsx
-│   │   │   ├── PendingApprovalsPage.jsx
-│   │   │   └── VoucherDetailsPage.jsx
-│   │   ├── services/
-│   │   │   └── api.js            # Axios client with interceptors
-│   │   ├── styles/
-│   │   │   ├── components.css    # Cards, tables, forms, buttons
-│   │   │   ├── layout.css        # Layouts, sidebar, topbar
-│   │   │   ├── main.css          # Master stylesheet
-│   │   │   └── variables.css     # Design tokens and colors
-│   │   ├── App.jsx               # React Router route registry
-│   │   ├── index.css             # Entry stylesheet
-│   │   └── main.jsx              # React DOM render root
-│   ├── index.html
+│   │   ├── components/  # Shared UI components
+│   │   ├── context/     # Authentication state
+│   │   ├── layouts/     # Shared application layout
+│   │   ├── pages/       # Login, dashboards and voucher pages
+│   │   ├── services/    # API client
+│   │   └── styles/      # CSS files
 │   ├── package.json
-│   └── vite.config.js            # Vite configuration with /api proxy
+│   └── vite.config.js
 ├── .gitignore
 └── README.md
 ```
 
----
+## Set up the project
 
-## 6. Installation Instructions
+Run the commands below from a terminal. If you have already opened the
+project folder, you do not need to clone it again.
 
-### Step 1: Clone or Navigate to the Workspace
-```bash
-cd "e:/Expense Voucher Management System"
-```
+### 1. Install backend dependencies
 
-### Step 2: Install Backend Dependencies
-```bash
+``` bash
 cd backend
 npm install
 ```
 
-### Step 3: Install Frontend Dependencies
-```bash
-cd ../frontend
+### 2. Install frontend dependencies
+
+Open another terminal, or return to the project root before entering the
+frontend folder:
+
+``` bash
+cd frontend
 npm install
 ```
 
----
+### 3. Configure MongoDB
 
-## 7. MongoDB Configuration
+Make sure the MongoDB service is running. On Windows, you can check its
+status in PowerShell with:
 
-Ensure your MongoDB instance is running locally:
-```bash
-# Verify MongoDB service status on Windows:
+``` powershell
 Get-Service -Name MongoDB
 ```
-If using a custom URI or cloud MongoDB Atlas, update `MONGODB_URI` in `backend/.env`.
 
----
+If you use MongoDB Atlas or a different local database, update the
+connection string in `backend/.env`.
 
-## 8. Environment Variable Configuration
+### 4. Set up environment variables
 
-Create or inspect `backend/.env` (a template is available in `backend/.env.example`):
-```env
+Create a `backend/.env` file using `backend/.env.example` as a guide.
+For a local setup, the values should look similar to this:
+
+``` env
 PORT=5000
 MONGODB_URI=mongodb://127.0.0.1:27017/expenseVoucherDB
-JWT_SECRET=prachay_securities_expense_voucher_jwt_secret_key_2026_super_secure
+JWT_SECRET=replace_this_with_a_long_random_secret
 JWT_EXPIRES_IN=1d
+CLIENT_URL=http://localhost:5173
 NODE_ENV=development
 ```
 
----
+Replace the example JWT secret with your own long, random value. Do not
+commit your real `.env` file or production secrets to GitHub.
 
-## 9. Seed Demonstration Users
+### 5. Add the demonstration data
 
-Populate the database with the required demonstration accounts and sample vouchers:
-```bash
-cd backend
+From the `backend` folder, run:
+
+``` bash
 npm run seed
 ```
-*(The script is idempotent: running it multiple times safely updates records without creating duplicates).*
 
----
+This script creates the demonstration accounts and sample vouchers. It
+is designed to be safe to run more than once without creating duplicate
+records.
 
-## 10. Start the Application
+### 6. Start the backend
 
-### Start the Backend Server:
-```bash
-cd backend
+In a terminal opened in the `backend` folder:
+
+``` bash
 npm run dev
-# Server will run at http://localhost:5000
 ```
 
-### Start the Frontend Dev Server:
-```bash
-cd frontend
+The backend should be available at `http://localhost:5000`.
+
+### 7. Start the frontend
+
+Open a second terminal and move to the `frontend` folder:
+
+``` bash
 npm run dev
-# Frontend will run at http://localhost:5173
 ```
 
-Open `http://localhost:5173` in your browser.
+Vite will display the local frontend address, normally
+`http://localhost:5173`. Open that address in your browser.
 
----
+## Demo accounts
 
-## 11. Demonstration Login Credentials
+The database seed script provides the following demonstration accounts for local evaluation:
 
-For local testing and reviewer evaluation, the seed script provisions three pre-configured accounts:
+### Employee Accounts
 
-| Role | Name | Email Address | Password |
-|---|---|---|---|
-| **Employee** | Rahul Sharma | `employee@prachay.com` | `Password@123` |
-| **Director** | Ananya Deshmukh | `director@prachay.com` | `Password@123` |
-| **Accounts Team** | Vikram Patel | `accounts@prachay.com` | `Password@123` |
+Each employee account is completely isolated. Employees can **only** view, edit, and track their own expense vouchers, and cannot access other employees' records.
 
-> **Pro-Tip:** The login screen provides **Quick Demo Account** buttons to instantly fill in any of the above credentials with a single click.
+| Employee Name | Corporate Email | Employee ID | Department | Password |
+| :--- | :--- | :--- | :--- | :--- |
+| **Rahul Sharma** | `rahul@prachay.com` | `PSPL-EMP-1001` | Finance | `Password@123` |
+| **Priya Patel** | `priya@prachay.com` | `PSPL-EMP-1002` | Human Resources | `Password@123` |
+| **Arjun Mehta** | `arjun@prachay.com` | `PSPL-EMP-1003` | Technology | `Password@123` |
+| **Neha Desai** | `neha@prachay.com` | `PSPL-EMP-1004` | Marketing | `Password@123` |
+| **Amit Verma** | `amit@prachay.com` | `PSPL-EMP-1005` | Operations | `Password@123` |
 
----
+### Executive & Financial Oversight Accounts
 
-## 12. Database Schema Explanation
+| Role | Name | Corporate Email | Employee ID | Permissions | Password |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Director** | Ananya Deshmukh | `director@prachay.com` | `PSPL-DIR-001` | Full organization view; authorize claims with digital signature; reject with mandatory feedback | `Password@123` |
+| **Accounts Team** | Vikram Patel | `accounts@prachay.com` | `PSPL-ACC-005` | Strictly read-only organization ledger oversight; payout calculation; zero edit/delete access | `Password@123` |
 
-### User Schema (`models/User.js`)
-- `name`: String, required, trimmed
-- `email`: String, required, unique, lowercase
-- `password`: String, required (hashed using bcrypt with 10 salt rounds; never exposed in API output)
-- `role`: String enum (`'Employee'`, `'Director'`, `'Accounts Team'`)
-- `employeeId`: String (e.g. `'PSPL-EMP-1042'`)
-- `createdAt`: Date
+> **Data Isolation Note**: The backend strictly scopes employee database queries and API endpoints (`req.user.role === 'Employee'`). An employee attempting to access or edit another employee's voucher by modifying a URL ID or sending forged API payloads is immediately rejected with `403 Forbidden`.
 
-### Counter Schema (`models/Counter.js`)
-- `_id`: String (e.g. `'voucher_2026'`)
-- `seq`: Number
-- Method: `getNextVoucherNumber(year)` uses atomic `findByIdAndUpdate` with `$inc` to produce format `EXP-YYYY-XXXX`.
+These credentials are demonstration accounts for local development and review. The login portal includes a quick demo selector dropdown and instant one-click login buttons.
 
-### Voucher Schema (`models/Voucher.js`)
-- **Basic Info:**
-  - `voucherNumber`: String, unique, uppercase (e.g. `EXP-2026-0001`)
-  - `voucherDate`: Date, default `Date.now`
-  - `expenseDate`: Date, required
-  - `departmentName`: String, required
-  - `expenseTitle`: String, required
-  - `expenseCategory`: String enum (`'Travel'`, `'Food'`, `'Accommodation'`, `'Office Supplies'`, `'Transportation'`, `'Other'`)
-  - `expenseDescription`: String
-  - `amount`: Number, required, minimum 0.01
-- **Employee Info:**
-  - `employee`: ObjectId ref `User`, required
-  - `employeeName`: String, required
-  - `employeeId`: String
-  - `employeeSignature`: String URL (e.g. `/uploads/sig-xxxx.png`)
-- **Approval Info:**
-  - `status`: String enum (`'Draft'`, `'Pending Approval'`, `'Approved'`, `'Rejected'`), default `'Draft'`
-  - `director`: ObjectId ref `User`, default `null`
-  - `directorName`: String, default `null`
-  - `directorSignature`: String URL, default `null`
-  - `approvalDate`: Date, default `null`
-  - `rejectionReason`: String, default `null`
-- **Audit Info:**
-  - `timestamps`: `createdAt`, `updatedAt`
+## How the voucher workflow works
 
----
+1.  **Create a draft:** An employee enters the expense details. A
+    signature is not needed just to save a draft.
+2.  **Submit the voucher:** The employee completes the required fields
+    and adds a signature. The voucher moves to **Pending Approval** and
+    becomes read-only for that employee.
+3.  **Director reviews it:** The Director can approve the voucher after
+    adding a signature, or reject it by providing a reason.
+4.  **Accounts Team reviews the record:** The Accounts Team can view
+    vouchers and monitor approved expenses, but cannot edit, approve, or
+    reject them.
+5.  **Employee checks a rejection:** If a voucher is rejected, the
+    employee can view the reason recorded by the Director.
 
-## 13. API Documentation
+Voucher numbers use the format `EXP-YYYY-XXXX`, for example
+`EXP-2026-0001`.
 
-### Authentication (`/api/auth`)
-- `POST /api/auth/login`: Authenticate email and password, returns JWT token and safe user payload.
-- `GET /api/auth/me`: Validate JWT token and fetch active user session.
+## Roles and permissions
 
-### Vouchers (`/api/vouchers`)
-- `GET /api/vouchers`: List vouchers with search (`search`), filters (`department`, `category`, `status`, `startDate`, `endDate`, `minAmount`, `maxAmount`), and sorting (`sortBy`). Automatically scoped to `req.user._id` for Employees.
-- `GET /api/vouchers/:id`: Retrieve single voucher details. Enforces ownership for Employees.
-- `POST /api/vouchers`: Create draft voucher (Employee only).
-- `PUT /api/vouchers/:id`: Update draft voucher (Employee only; restricted to Draft status).
-- `DELETE /api/vouchers/:id`: Delete draft voucher (Employee only; restricted to Draft status).
-- `POST /api/vouchers/:id/submit`: Submit draft voucher for approval (validates signature, department, title, date, amount > 0).
-- `POST /api/vouchers/:id/approve`: Approve pending voucher (Director only; validates Director signature).
-- `POST /api/vouchers/:id/reject`: Reject pending voucher (Director only; validates rejection reason).
+  Action                                    Employee   Director              Accounts Team
+  ----------------------------------------- ---------- --------------------- ---------------
+  View own vouchers                         Yes        Yes                   Yes
+  View other employees' vouchers            No         Yes                   Yes
+  Create vouchers                           Yes        No                    No
+  Edit or delete own drafts                 Yes        No                    No
+  Edit or delete submitted vouchers         No         No                    No
+  Submit a voucher                          Yes        No                    No
+  Approve a pending voucher                 No         Yes, with signature   No
+  Reject a pending voucher                  No         Yes, with reason      No
+  View organisation-wide expense records    No         Yes                   Yes
+  Modify employee-entered expense details   No         No                    No
 
-### Dashboards (`/api/dashboard`)
-- `GET /api/dashboard/employee`: Real-time counts (total, draft, pending, approved, rejected, total claimed amount, recent vouchers).
-- `GET /api/dashboard/director`: Real-time counts (pending count, approved today, rejected today, total pending amount, recent activity).
-- `GET /api/dashboard/accounts`: Real-time financial metrics (total vouchers, pending, approved, rejected, total approved reimbursement sum, recent approved vouchers).
+## Database overview
 
-### Uploads (`/api/upload`)
-- `POST /api/upload/signature`: Upload employee or director signature image (JPEG, PNG, WebP ≤ 2MB).
+The application uses three main MongoDB models.
 
----
+### User
 
-## 14. Voucher Workflow Explanation
+Stores each user's name, email, hashed password, role, employee ID, and
+creation date. Passwords are hashed with `bcryptjs` and should not be
+returned in API responses.
 
-```mermaid
-stateDiagram-v2
-    [*] --> Draft: Employee creates voucher
-    Draft --> Draft: Employee edits or deletes draft
-    Draft --> PendingApproval: Employee submits with signature
-    PendingApproval --> Approved: Director approves with signature
-    PendingApproval --> Rejected: Director rejects with reason
-    Approved --> [*]: Accounts Team monitors reimbursement
-    Rejected --> [*]: Employee reviews rejection explanation
-```
+### Counter
 
-1. **Creation:** Every newly initiated voucher begins in **Draft** status. Signatures are optional while drafting.
-2. **Submission:** When the employee submits, all fields and an **Employee Signature** are strictly required. Status transitions to **Pending Approval**, and the voucher becomes read-only to the employee.
-3. **Executive Review:**
-   - **Approval:** The Director reviews the claim and attaches their **Director Signature**. The status becomes **Approved**, and the approval timestamp is recorded.
-   - **Rejection:** The Director rejects the claim and provides a **Rejection Reason**. The status becomes **Rejected**.
-4. **Disbursement:** The approved voucher enters the Accounts Team's financial pipeline for reimbursement audit and payment processing.
+Keeps the sequence used to generate voucher numbers. The counter is
+updated atomically so two requests are less likely to receive the same
+number.
 
----
+### Voucher
 
-## 15. Role Permissions Matrix
+Stores the voucher number and dates, department, expense title and
+category, description, amount, employee details, signatures, status,
+Director details, approval date, rejection reason, and rejection date.
+Mongoose timestamps also track when a record was created and last
+updated.
 
-| Capability / Action | Employee | Director | Accounts Team |
-|---|:---:|:---:|:---:|
-| View own vouchers | Yes | Yes | Yes |
-| View other employees' vouchers | **No** | **Yes** | **Yes** |
-| Create new vouchers | **Yes** | No | No |
-| Edit draft vouchers | **Yes** (Own only) | No | No |
-| Delete draft vouchers | **Yes** (Own only) | No | No |
-| Edit / Delete submitted vouchers | **No** | No | No |
-| Upload employee signature | **Yes** (On draft) | No | No |
-| Approve pending vouchers | No | **Yes** (With signature) | No |
-| Reject pending vouchers | No | **Yes** (With reason) | No |
-| Modify submitted expense details | No | **No** | **No** |
-| Access Accounts financial pipeline | No | Yes | **Yes** |
+The available expense categories are Travel, Food, Accommodation, Office
+Supplies, Transportation, and Other.
 
----
+## API overview
 
-## 16. Validation Rules
+The backend exposes the following main endpoints. Requests that require
+a signed-in user must include a valid JWT.
 
-- **Amounts:** Must be positive numbers strictly greater than 0.
-- **Voucher Numbers:** Must match sequential format `EXP-YYYY-XXXX` and maintain guaranteed uniqueness.
-- **File Uploads:**
-  - Allowed MIME types: `image/jpeg`, `image/png`, `image/webp`
-  - Maximum file size: `2,097,152 bytes` (2 MB)
-  - Filenames: Sanitized and suffixed with timestamp and random integers.
-- **Passwords:** Minimum 6 characters, hashed with bcrypt.
-- **Submission:** Cannot be performed if title, department, date, amount, or employee signature is missing.
-- **Approval:** Cannot be performed if Director signature is missing or status is not Pending Approval.
-- **Rejection:** Cannot be performed if rejection reason is missing or status is not Pending Approval.
+### Authentication --- `/api/auth`
 
----
+  Method   Endpoint            Purpose
+  -------- ------------------- ----------------------------------
+  POST     `/api/auth/login`   Sign in with email and password
+  GET      `/api/auth/me`      Check the current user's session
 
-## 17. Automated Testing & Verification
+### Vouchers --- `/api/vouchers`
 
-The repository includes an automated integration test suite covering 19 end-to-end scenarios:
-```bash
-cd backend
+  -----------------------------------------------------------------------------
+  Method                  Endpoint                      Purpose
+  ----------------------- ----------------------------- -----------------------
+  GET                     `/api/vouchers`               List vouchers; supports
+                                                        search, filters and
+                                                        sorting
+
+  GET                     `/api/vouchers/:id`           Get a voucher's details
+
+  POST                    `/api/vouchers`               Create a draft
+                                                        (Employee)
+
+  PUT                     `/api/vouchers/:id`           Update an owned draft
+                                                        (Employee)
+
+  DELETE                  `/api/vouchers/:id`           Delete an owned draft
+                                                        (Employee)
+
+  POST                    `/api/vouchers/:id/submit`    Submit a draft for
+                                                        approval
+
+  POST                    `/api/vouchers/:id/approve`   Approve a pending
+                                                        voucher (Director)
+
+  POST                    `/api/vouchers/:id/reject`    Reject a pending
+                                                        voucher (Director)
+  -----------------------------------------------------------------------------
+
+The list endpoint supports search and filters such as `department`,
+`category`, `status`, `startDate`, `endDate`, `minAmount`, and
+`maxAmount`, along with the `sortBy` parameter. Employee requests are
+limited to vouchers owned by the signed-in employee.
+
+### Dashboards --- `/api/dashboard`
+
+  ---------------------------------------------------------------------------
+  Method                  Endpoint                    Purpose
+  ----------------------- --------------------------- -----------------------
+  GET                     `/api/dashboard/employee`   Employee voucher counts
+                                                      and recent vouchers
+
+  GET                     `/api/dashboard/director`   Pending approvals and
+                                                      recent approval
+                                                      activity
+
+  GET                     `/api/dashboard/accounts`   Voucher totals and
+                                                      approved expense
+                                                      figures
+  ---------------------------------------------------------------------------
+
+### Signature uploads
+
+  -----------------------------------------------------------------------------------
+  Method                  Endpoint                            Purpose
+  ----------------------- ----------------------------------- -----------------------
+  POST                    `/api/upload/signature`             Upload a signature
+                                                              image
+
+  GET                     `/uploads/:filename`                Retrieve an authorised
+                                                              signature image
+
+  GET                     `/api/upload/signature/:filename`   Retrieve an authorised
+                                                              signature image
+  -----------------------------------------------------------------------------------
+
+Signature retrieval requires authentication and checks whether the user
+is allowed to view the related voucher. Supported image types are JPEG,
+PNG, and WebP, with a maximum file size of 2 MB.
+
+## Validation and access rules
+
+-   Voucher amounts must be greater than zero.
+-   Voucher numbers must be unique.
+-   An employee signature is required before submission.
+-   Only a pending voucher can be approved or rejected.
+-   The Director must add a signature to approve a voucher.
+-   The Director must provide a reason to reject a voucher.
+-   Employees can update or delete only their own drafts.
+-   The Director cannot change the employee's expense details during
+    review.
+-   The Accounts Team has read-only access.
+-   Signature uploads are limited by file type and size.
+
+## Running the tests
+
+The backend contains an API integration test script. From the `backend`
+folder, run the test command configured in `package.json`:
+
+``` bash
 npm test
 ```
 
-### Verified Test Scenarios:
-```
-=== STARTING AUTOMATED BACKEND INTEGRATION TESTS ===
+The test suite is intended to cover login, role permissions, voucher
+creation and submission, approval and rejection rules, and dashboard
+data. Run it against a test database or a development database whose
+contents can safely be changed. Check the test output to confirm the
+actual result in your environment.
 
-✓ [PASS] Server health endpoint returns 200 OK
-✓ [PASS] Valid Employee login succeeds and returns JWT token & profile
-✓ [PASS] Valid Director login succeeds and returns JWT token
-✓ [PASS] Valid Accounts Team login succeeds
-✓ [PASS] Invalid password fails with 401 Unauthorized
-✓ [PASS] Unauthenticated access to /api/vouchers returns 401
-✓ [PASS] Accounts Team cannot create vouchers (returns 403 Forbidden)
-✓ [PASS] Employee creates a draft voucher with auto-generated unique ID
-✓ [PASS] Submitting voucher without signature is rejected (returns 400)
-✓ [PASS] Submitting voucher with signature transitions status to Pending Approval
-✓ [PASS] Submitted voucher is read-only and cannot be edited by employee (returns 400)
-✓ [PASS] Submitted voucher cannot be deleted by employee (returns 400)
-✓ [PASS] Employee cannot approve vouchers (returns 403 Forbidden)
-✓ [PASS] Director approval without signature is rejected (returns 400)
-✓ [PASS] Director approval with signature transitions voucher to Approved
-✓ [PASS] An approved voucher cannot be approved or rejected again (returns 400)
-✓ [PASS] Accounts Team can view approved voucher and its signatures in read-only mode
-✓ [PASS] Director dashboard metrics return live MongoDB aggregation counts
-✓ [PASS] Accounts dashboard metrics return total approved expense sum
+## Assumptions and limitations
 
-========================================
-TEST SUMMARY: 19 PASSED, 0 FAILED
-========================================
-```
+-   **One approval level:** The workflow uses the Director as the
+    approver. Additional approval levels are not included.
+-   **No payment gateway:** The Accounts Team tracks approved claims;
+    the application does not send payments through a payment gateway.
+-   **Local signature storage:** Uploaded signature images are stored on
+    the backend server's disk. A deployment with multiple backend
+    instances would need shared storage, such as an object storage
+    service.
+-   **Browser token storage:** The current application stores the
+    authentication token and basic user information in browser
+    `localStorage`. This is a project limitation to consider before
+    production deployment.
 
-In addition, the entire workflow was visually verified in the browser using the agentic browser runner (video recording saved to artifacts).
+## Project notes
 
----
+This project was developed for the Prachay Securities Private Limited
+(PSPL) Full Stack Developer Internship evaluation. It uses the MERN
+stack: MongoDB, Express, React, and Node.js.
 
-## 18. Assumptions Made During Development
-
-1. **Single Approver Level:** The business workflow specifies approval by the Director. Multi-tier management approval (e.g., Team Lead → Department Head → Director) is not mandated and was intentionally kept streamlined.
-2. **Signature Storage:** Signatures are stored locally in `backend/uploads/` and served statically via Express. In a production multi-server cluster, these would be backed by an S3 or Google Cloud Storage bucket.
-3. **No Payment Gateway:** Per assignment specifications, the Accounts Team monitors approved claims for disbursement; payment gateway APIs (e.g. Razorpay, Stripe) are deliberately excluded.
-
----
-
-## 19. Known Limitations
-
-1. **Local Storage Session:** Authentication token and basic user details are cached in browser `localStorage`.
-2. **Single Server Uploads:** Signatures are written to the local disk. Running multiple backend instances behind a round-robin load balancer without shared storage would require configuring an object storage adapter.
-
----
-
-## 20. License & Credits
-
-Developed for **Prachay Securities Private Limited (PSPL)** Full Stack Developer Internship Evaluation.
-Built using the MERN stack (MongoDB, Express, React, Node.js).
+For local development, start MongoDB first, then the backend, and
+finally the frontend. If something does not start, check that the
+environment variables are set correctly and that the required ports are
+available.

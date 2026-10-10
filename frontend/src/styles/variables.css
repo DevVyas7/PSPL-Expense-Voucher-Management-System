@@ -1,57 +1,76 @@
 :root {
-  /* Color Palette */
-  --color-primary: #2563eb;
-  --color-primary-hover: #1d4ed8;
-  --color-primary-light: #eff6ff;
-  
-  --color-navy-dark: #0f172a;
-  --color-navy-sidebar: #1e293b;
-  --color-navy-hover: #334155;
-  --color-navy-active: #2563eb;
+  /* Reference Palette (Ramp / Enterprise Finance Style) */
+  --color-sidebar-bg: #F3F2EF;
+  --color-sidebar-hover: #E7E6E2;
+  --color-sidebar-active: #DFDDD8;
+  --color-sidebar-text: #262626;
+  --color-sidebar-text-muted: #737373;
+  --color-sidebar-border: #E5E5E5;
 
-  --color-bg-page: #f8fafc;
-  --color-bg-card: #ffffff;
-  --color-bg-subtle: #f1f5f9;
+  --color-bg-page: #E9ECE8;
+  --color-bg-workspace: #FFFFFF;
+  --color-bg-card: #FFFFFF;
+  --color-bg-subtle: #F8F8F7;
+  --color-bg-hover: #FAFAFA;
 
-  --color-text-main: #0f172a;
-  --color-text-muted: #64748b;
-  --color-text-light: #94a3b8;
-  --color-text-white: #ffffff;
+  /* Typography */
+  --color-text-main: #262626;
+  --color-text-secondary: #737373;
+  --color-text-muted: #9E9E9E;
+  --color-text-light: #BDBDBD;
 
-  --color-border: #e2e8f0;
-  --color-border-dark: #cbd5e1;
+  /* Borders & Dividers */
+  --color-border: #E5E5E5;
+  --color-border-subtle: #F0F0F0;
+  --color-border-dark: #D4D4D4;
+  --color-border-focus: #202020;
 
-  /* Status Colors */
-  --status-draft-text: #475569;
-  --status-draft-bg: #f1f5f9;
-  --status-draft-border: #cbd5e1;
+  /* Primary Accent: Bright Lime (Used sparingly for primary actions) */
+  --color-accent: #D9F52A;
+  --color-accent-hover: #CBE824;
+  --color-accent-active: #BDD81F;
+  --color-accent-text: #202020;
 
-  --status-pending-text: #b45309;
-  --status-pending-bg: #fef3c7;
-  --status-pending-border: #fde68a;
+  /* Neutral Dark Actions */
+  --color-dark-action: #202020;
+  --color-dark-action-hover: #383838;
+  --color-dark-action-text: #FFFFFF;
 
-  --status-approved-text: #15803d;
-  --status-approved-bg: #dcfce7;
-  --status-approved-border: #bbf7d0;
+  /* Status Colors (Subtle & Restrained) */
+  --status-approved-text: #276738;
+  --status-approved-bg: #F0F7F2;
+  --status-approved-border: #D2E8D7;
 
-  --status-rejected-text: #b91c1c;
-  --status-rejected-bg: #fee2e2;
-  --status-rejected-border: #fecaca;
+  --status-pending-text: #8A5800;
+  --status-pending-bg: #FFF9EC;
+  --status-pending-border: #FFE8B8;
 
-  /* UI Tokens */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.09), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  --status-rejected-text: #A52A2A;
+  --status-rejected-bg: #FDF2F2;
+  --status-rejected-border: #F8D3D3;
 
+  --status-draft-text: #595959;
+  --status-draft-bg: #F5F5F4;
+  --status-draft-border: #E5E5E5;
+
+  /* Restrained, Crisp Enterprise Border Radii */
+  --radius-xs: 3px;
   --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
   --radius-full: 9999px;
 
-  --sidebar-width: 260px;
-  --topbar-height: 68px;
+  /* Minimal Shadows */
+  --shadow-subtle: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-modal: 0 12px 32px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.06);
 
+  /* Layout Measurements */
+  --sidebar-width: 240px;
+  --topbar-height: 52px;
+
+  /* Font System */
   --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --transition-normal: all 0.2s ease-in-out;
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.2s ease-in-out;
 }

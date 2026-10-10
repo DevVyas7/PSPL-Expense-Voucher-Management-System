@@ -14,13 +14,14 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
-    // Generate safe, unique filename
+    // Generate safe, unique filename incorporating uploader user ID
+    const userId = req.user ? req.user._id.toString() : 'guest';
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
     const sanitizedOriginalName = file.originalname
       .replace(/[^a-zA-Z0-9.-]/g, '_')
       .toLowerCase();
-    const ext = path.extname(sanitizedOriginalName).toLowerCase();
-    cb(null, `sig-${uniqueSuffix}${ext}`);
+    const ext = path.extname(sanitizedOriginalName).toLowerCase() || '.png';
+    cb(null, `sig-${userId}-${uniqueSuffix}${ext}`);
   }
 });
 

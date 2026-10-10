@@ -17,7 +17,7 @@ counterSchema.statics.getNextVoucherNumber = async function (year = new Date().g
   const counter = await this.findByIdAndUpdate(
     counterId,
     { $inc: { seq: 1 } },
-    { new: true, upsert: true }
+    { returnDocument: 'after', upsert: true }
   );
   
   const paddedSeq = String(counter.seq).padStart(4, '0');
